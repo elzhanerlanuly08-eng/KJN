@@ -1,0 +1,3357 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quizizz — Компьютер жүйелерінің сәулеті</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            navy: {
+              950: '#040b1a',
+              900: '#07132c',
+              850: '#0b1c3e',
+              800: '#102652',
+              700: '#173775',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at 15% 15%, #132f66 0%, #07132c 45%, #040b1a 100%);
+      min-height: 100vh;
+      color: #f0f6ff;
+      overflow-x: hidden;
+    }
+
+    /* Тонкая сетка на фоне */
+    .bg-grid {
+      background-size: 36px 36px;
+      background-image: 
+        linear-gradient(to right, rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+    }
+
+    /* Стеклянные карточки */
+    .glass-card {
+      background: rgba(15, 35, 76, 0.65);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(96, 165, 250, 0.22);
+      box-shadow: 0 12px 35px -8px rgba(2, 8, 23, 0.65);
+    }
+
+    .glass-card-hover {
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .glass-card-hover:hover {
+      transform: translateY(-4px);
+      border-color: rgba(56, 189, 248, 0.6);
+      background: rgba(21, 49, 104, 0.78);
+      box-shadow: 0 18px 40px -10px rgba(14, 165, 233, 0.25);
+    }
+
+    /* Анимация появления */
+    @keyframes fadeSlideUp {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .animate-enter {
+      animation: fadeSlideUp 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    /* Стилизация вариантов ответа в стиле Quizizz */
+    .option-btn {
+      transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+      position: relative;
+      overflow: hidden;
+    }
+    .option-btn:not(:disabled):hover {
+      transform: translateY(-2px);
+      border-color: #38bdf8;
+      background: rgba(29, 78, 216, 0.35);
+      box-shadow: 0 8px 20px -4px rgba(14, 165, 233, 0.28);
+    }
+    .option-btn:not(:disabled):active {
+      transform: translateY(1px);
+    }
+
+    /* Скроллбар */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #061024;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e40af;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
+  </style>
+</head>
+<body class="bg-grid selection:bg-sky-500 selection:text-white">
+
+  <!-- Верхняя навигационная панель -->
+  <header class="sticky top-0 z-30 border-b border-blue-400/15 bg-navy-950/80 backdrop-blur-md">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <button onclick="goHome()" class="flex items-center gap-3 group text-left focus:outline-none">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30 group-hover:scale-105 transition-transform">
+          <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-sky-200 to-blue-300 bg-clip-text text-transparent">
+              Quizizz CS
+            </span>
+            <span class="hidden sm:inline-block text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-500/20 text-sky-300 border border-sky-400/20">
+              АЖК 121
+            </span>
+          </div>
+          <p class="text-xs text-blue-300/80 line-clamp-1">Компьютер жүйелерінің сәулеті</p>
+        </div>
+      </button>
+
+      <div class="flex items-center gap-3">
+        <div id="headerStats" class="hidden sm:flex items-center gap-2 text-xs font-medium text-blue-200 bg-blue-950/80 px-3.5 py-1.5 rounded-full border border-blue-400/20">
+          <span class="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
+          <span>База: <strong id="totalQuestionsBadge" class="text-white">346</strong> вопросов</span>
+        </div>
+        <button id="headerHomeBtn" onclick="confirmExitToHome()" class="hidden px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-blue-900/70 hover:bg-blue-800 text-sky-200 border border-blue-400/25 transition-colors flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span>На главную</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Основной контейнер -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- ==================== ЭКРАН 1: ГЛАВНОЕ МЕНЮ ==================== -->
+    <section id="homeScreen" class="animate-enter space-y-8">
+      <!-- Приветственный баннер -->
+      <div class="glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+        <div class="absolute -right-16 -top-16 w-64 h-64 bg-sky-500/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-16 -bottom-16 w-64 h-64 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="space-y-2.5 max-w-2xl">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/15 border border-sky-400/30 text-sky-300 text-xs font-semibold">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+              <span>Подготовка к экзамену • Все вопросы из PDF</span>
+            </div>
+            <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+              Компьютер жүйелерінің сәулеті
+            </h1>
+            <p class="text-blue-200/90 text-sm sm:text-base leading-relaxed">
+              Выберите блок из 50 вопросов для поэтапного изучения, пройдите всю базу целиком или проверьте знания в режиме реального экзамена (50 случайных вопросов). Варианты ответов автоматически перемешиваются.
+            </p>
+          </div>
+
+          <!-- Настройки сессии -->
+          <div class="flex flex-col sm:flex-row lg:flex-col gap-3 bg-navy-950/60 p-4 rounded-2xl border border-blue-400/20 shrink-0">
+            <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+              <span class="text-sm font-medium text-blue-100">Перемешивать вопросы</span>
+              <div class="relative inline-flex items-center">
+                <input type="checkbox" id="shuffleQuestionsToggle" class="sr-only peer">
+                <div class="w-11 h-6 bg-blue-950 border border-blue-400/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-sky-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 peer-checked:after:bg-white"></div>
+              </div>
+            </label>
+            <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+              <span class="text-sm font-medium text-blue-100">Автопереход (1.2 сек)</span>
+              <div class="relative inline-flex items-center">
+                <input type="checkbox" id="autoAdvanceToggle" checked class="sr-only peer">
+                <div class="w-11 h-6 bg-blue-950 border border-blue-400/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-sky-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 peer-checked:after:bg-white"></div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Специальные режимы: Экзамен и Все вопросы сразу -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <!-- Режим Экзамена -->
+        <button onclick="startExamMode()" class="group text-left rounded-3xl p-6 sm:p-7 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 border border-sky-300/35 shadow-xl shadow-blue-900/50 hover:shadow-sky-500/25 hover:-translate-y-1 transition-all duration-200 relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-40 h-40 bg-sky-300/15 rounded-full blur-2xl group-hover:scale-125 transition-transform"></div>
+          <div class="relative z-10 flex items-start justify-between gap-4">
+            <div class="space-y-2">
+              <span class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-white/15 text-white backdrop-blur-sm">
+                Рандом • 50 вопросов
+              </span>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Режим Экзамена</h2>
+              <p class="text-blue-100/90 text-sm">
+                50 случайных неповторяющихся вопросов из всей базы при каждом запуске. Идеально для финальной проверки.
+              </p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-white/15 flex items-center justify-center shrink-0 group-hover:bg-white/25 transition-colors">
+              <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+          </div>
+        </button>
+
+        <!-- Все вопросы сразу -->
+        <button onclick="startAllMode()" class="group text-left glass-card glass-card-hover rounded-3xl p-6 sm:p-7 relative overflow-hidden">
+          <div class="absolute right-0 top-0 w-40 h-40 bg-cyan-400/10 rounded-full blur-2xl group-hover:scale-125 transition-transform"></div>
+          <div class="relative z-10 flex items-start justify-between gap-4">
+            <div class="space-y-2">
+              <span id="allQuestionsChip" class="inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-sky-500/20 text-sky-300 border border-sky-400/25">
+                Полная база • 346 вопросов
+              </span>
+              <h2 class="text-xl sm:text-2xl font-extrabold text-white">Все вопросы сразу</h2>
+              <p class="text-blue-200/85 text-sm">
+                Прохождение всех вопросов документа подряд (или вперемешку, если включен переключатель выше).
+              </p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center shrink-0 group-hover:bg-sky-500/30 transition-colors">
+              <svg class="w-6 h-6 text-sky-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Блоки по 50 вопросов -->
+      <div class="space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2.5">
+            <span class="w-2.5 h-6 rounded-full bg-gradient-to-b from-sky-400 to-blue-600"></span>
+            <span>Блоки по 50 вопросов</span>
+          </h3>
+          <span class="text-xs text-blue-300/80">Выберите диапазон</span>
+        </div>
+
+        <div id="chunksGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Карточки блоков генерируются динамически через JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЭКРАН 2: ПРОЦЕСС ТЕСТИРОВАНИЯ ==================== -->
+    <section id="quizScreen" class="hidden max-w-3xl mx-auto space-y-5">
+      <!-- Верхняя панель статуса теста -->
+      <div class="glass-card rounded-2xl p-4 sm:p-5 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <span id="modeBadge" class="px-3 py-1 rounded-lg bg-blue-600/40 border border-sky-400/30 text-sky-200 text-xs font-bold">
+              Блок 1 – 50
+            </span>
+            <span class="text-sm font-semibold text-blue-100">
+              Вопрос <span id="currentQNum" class="text-white font-extrabold text-base">1</span> из <span id="totalQNum" class="text-blue-200">50</span>
+            </span>
+          </div>
+
+          <!-- Счетчики правильных и неправильных в реальном времени -->
+          <div class="flex items-center gap-2.5">
+            <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 text-xs sm:text-sm font-bold" title="Правильные ответы">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span id="liveCorrectCount">0</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-rose-500/15 border border-rose-400/30 text-rose-300 text-xs sm:text-sm font-bold" title="Неправильные ответы">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              <span id="liveWrongCount">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Прогресс-бар -->
+        <div class="w-full h-2.5 bg-navy-950/90 rounded-full overflow-hidden border border-blue-400/15">
+          <div id="progressBar" class="h-full bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-400 rounded-full transition-all duration-300" style="width: 2%"></div>
+        </div>
+      </div>
+
+      <!-- Карточка вопроса и вариантов ответа -->
+      <div id="questionCard" class="glass-card rounded-3xl p-6 sm:p-8 space-y-6 animate-enter">
+        <div class="space-y-2">
+          <div class="text-xs font-semibold uppercase tracking-wider text-sky-400/90 flex items-center justify-between">
+            <span>Вопрос #<span id="originalQuestionIndex">1</span></span>
+            <span id="feedbackLabel" class="hidden font-bold"></span>
+          </div>
+          <h2 id="questionText" class="text-lg sm:text-2xl font-bold text-white leading-snug">
+            Текст вопроса...
+          </h2>
+        </div>
+
+        <!-- Список вариантов ответа -->
+        <div id="optionsContainer" class="space-y-3">
+          <!-- Варианты генерируются динамически -->
+        </div>
+
+        <!-- Нижняя панель управления вопросом -->
+        <div class="pt-4 border-t border-blue-400/15 flex flex-wrap items-center justify-between gap-3">
+          <button onclick="finishQuizEarly()" class="px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-blue-300 hover:text-white hover:bg-blue-900/60 border border-blue-400/20 transition-colors">
+            Завершить досрочно
+          </button>
+
+          <button id="nextQuestionBtn" onclick="nextQuestion()" class="hidden px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2">
+            <span id="nextBtnText">Следующий вопрос</span>
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== ЭКРАН 3: РЕЗУЛЬТАТЫ ТЕСТА ==================== -->
+    <section id="resultScreen" class="hidden max-w-4xl mx-auto space-y-6 animate-enter">
+      <div class="glass-card rounded-3xl p-6 sm:p-10 text-center space-y-8 relative overflow-hidden">
+        <div class="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-sky-400 via-blue-500 to-indigo-500"></div>
+
+        <div class="space-y-2">
+          <span id="resultModeTitle" class="inline-block px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-sky-300 border border-sky-400/25">
+            Результаты тестирования
+          </span>
+          <h2 id="resultHeadline" class="text-2xl sm:text-4xl font-extrabold text-white">
+            Тест завершён!
+          </h2>
+          <p id="resultSubtext" class="text-blue-200/85 text-sm sm:text-base max-w-xl mx-auto">
+            Отличная работа! Ознакомьтесь со статистикой прохождения ниже.
+          </p>
+        </div>
+
+        <!-- Круговая диаграмма и карточки статистики -->
+        <div class="flex flex-col md:flex-row items-center justify-center gap-8 sm:gap-12">
+          <!-- SVG круговой индикатор -->
+          <div class="relative w-44 h-44 flex items-center justify-center shrink-0">
+            <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(30, 58, 138, 0.45)" stroke-width="12" />
+              <circle id="scoreCircle" cx="60" cy="60" r="52" fill="none" stroke="url(#blueGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="326.72" stroke-dashoffset="326.72" class="transition-all duration-1000 ease-out" />
+              <defs>
+                <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#38bdf8" />
+                  <stop offset="100%" stop-color="#6366f1" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center">
+              <span id="scorePercentText" class="text-3xl sm:text-4xl font-extrabold text-white">0%</span>
+              <span class="text-xs font-medium text-blue-300 uppercase tracking-wider mt-0.5">Точность</span>
+            </div>
+          </div>
+
+          <!-- Карточки показателей -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-lg">
+            <div class="rounded-2xl p-4 bg-navy-950/60 border border-blue-400/20 flex flex-col items-center justify-center">
+              <span class="text-xs font-semibold text-blue-300 uppercase">Всего отвечено</span>
+              <span id="resTotalAnswered" class="text-2xl sm:text-3xl font-extrabold text-white mt-1">0</span>
+            </div>
+            <div class="rounded-2xl p-4 bg-emerald-950/40 border border-emerald-400/30 flex flex-col items-center justify-center">
+              <span class="text-xs font-semibold text-emerald-300 uppercase">Правильных</span>
+              <span id="resCorrect" class="text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-1">0</span>
+            </div>
+            <div class="rounded-2xl p-4 bg-rose-950/40 border border-rose-400/30 flex flex-col items-center justify-center">
+              <span class="text-xs font-semibold text-rose-300 uppercase">Неправильных</span>
+              <span id="resWrong" class="text-2xl sm:text-3xl font-extrabold text-rose-400 mt-1">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Кнопки действий -->
+        <div class="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <button onclick="goHome()" class="px-6 py-3.5 rounded-2xl text-sm sm:text-base font-bold text-white bg-gradient-to-r from-sky-500 via-blue-600 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 shadow-lg shadow-blue-600/35 transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+            <span>Вернуться на главную страницу</span>
+          </button>
+
+          <button onclick="restartCurrentQuiz()" class="px-6 py-3.5 rounded-2xl text-sm sm:text-base font-bold text-sky-200 bg-blue-900/60 hover:bg-blue-800/80 border border-sky-400/30 transition-all flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Пройти заново</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Разбор ошибок -->
+      <div id="mistakesSection" class="hidden space-y-4">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+            <span class="w-2.5 h-6 rounded-full bg-rose-500"></span>
+            <span>Разбор допущенных ошибок (<span id="mistakesCountBadge">0</span>)</span>
+          </h3>
+        </div>
+        <div id="mistakesList" class="space-y-4">
+          <!-- Список ошибок рендерится сюда -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Кастомное модальное окно подтверждения (без window.confirm/alert) -->
+  <div id="confirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
+    <div class="glass-card rounded-3xl max-w-md w-full p-6 space-y-5 animate-enter border border-sky-400/30">
+      <div class="space-y-2">
+        <h3 id="modalTitle" class="text-xl font-bold text-white">Выйти на главную?</h3>
+        <p id="modalMessage" class="text-sm text-blue-200/90 leading-relaxed">
+          Текущий прогресс прохождения теста будет сброшен. Вы уверены, что хотите вернуться в меню?
+        </p>
+      </div>
+      <div class="flex items-center justify-end gap-3">
+        <button onclick="closeConfirmModal()" class="px-4 py-2.5 rounded-xl text-sm font-semibold text-blue-200 hover:bg-blue-900/60 border border-blue-400/20 transition-colors">
+          Отмена
+        </button>
+        <button id="modalConfirmAction" class="px-5 py-2.5 rounded-xl text-sm font-bold text-white bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 shadow-md transition-all">
+          Да, выйти
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Скрытый контейнер с полным необработанным текстом всех вопросов из PDF (стр. 1–61) -->
+  <script id="rawQuizData" type="text/plain">
+##### Дербес компьютерде ақпаратты сақтаудың негізгі түрлері қандай?
+????? Қатты дисктер, компакт дисктер
+????? Жай, күрделі, структуралық
+????? Файл қасиеттерінің біреуі, файлға тура сілтеп тұрады
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+????? Алмастырылмайтын дискілі магниттік жинақтаушы
+
+##### Файл қасиеттерінің біреуі, файлға тура сілтеп тұрады?
+????? Файл аты
+????? Компакт дискі
+????? Қатты диск
+????? Файл
+????? Сектор
+
+##### Файл дегеніміз не?
+????? Орталық логикалық мәні мен атауы бар қатты дискідегі аймақ
+????? Файлдарды сақтаудың мүлдем басқаша жүйесі
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+????? Тармақталған, циклдік, рекурсивтік
+????? Дискілік аймақтың негізгі физикалық бірлігі
+
+##### Дискета дегеніміз не?
+????? Магниттік қасиеттері бар жолақ, уақыт өте өзінің магниттік қасиеттерін сақтап, осы қасиеті үшін ақпарат сақтауда қолданылады
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+????? Дискілік аймақтың негізгі физикалық бірлігі
+????? Тасушылардағы ақпараттың орналасуының ортақ, алдын-ала анықталған ережелер жинағы
+????? Дискілік аймақтың негізгі логикалық бірлігі
+
+##### Дискілік аймақтың негізгі логикалық бірлігі дегеніміз не?
+????? Сектор
+????? Кластер
+????? Дискета
+????? Қатты диск
+????? Файл
+
+##### Компакт–дискі дегеніміз не?
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+????? Магниттік қасиеттері бар жолақ, уақыт өте өзінің магниттік қасиеттерін сақтап, осы қасиеті үшін ақпарат сақтауда қолданылады
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+????? Дискілік аймақтың негізгі физикалық бірлігі
+????? Тасушылардағы ақпараттың орналасуының ортақ, алдын-ала анықталған ережелер жинағы
+
+##### Максималды диск өлшемі?
+????? 8 Тб
+????? 1024 Кб
+????? 4Гб
+????? 255Гб
+????? 2Тб
+
+##### Максималды файл?
+????? 4 Гб
+????? 8Тб
+????? 5Мб
+????? 800бит
+????? 1024 Кб
+
+##### Тасушылардағы ақпараттың орналасуының ортақ, алдын-ала анықталған ережелер жинағы?
+????? Файлдық жүйе
+????? Дискета
+????? Қатты диск
+????? Файл
+????? Компакт дискі
+
+##### Файлдық жүйе дегеніміз не?
+????? Тасушылардағы ақпараттың орналасуының ортақ, алдын-ала анықталған ережелер жинағы
+????? Қаттыдисктер, компакт дисктер
+????? Жай, күрделі, структуралық
+????? Файл қасиеттерінің біреуі, файлға тура сілтеп тұрады
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+
+##### Магниттік қасиеттері бар жолақ, уақыт өте өзінің магниттік қасиеттерін сақтап, осы қасиеті үшін ақпарат сақтауда қолданылады?
+????? Дискета
+????? Қатты диск
+????? Файл
+????? Файлдар жүйесі
+????? Компакт дискі
+
+##### Кластер дегеніміз не?
+????? Ақпаратты сақтауда қолданылатын дискреттік дискілік аймақтардың жиыны
+????? Орталық логикалық мәні мен атауы бар қатты дискідегі аймақ
+????? Файлдарды сақтаудың мүлдем басқаша жүйесі
+????? Оптикалық қасиеттеріне негізделіп ақпаратты сақтайды
+????? Тармақталған, циклдік, рекурсивтік
+
+##### Алмастырылмайтын дискілі магниттік жинақтаушы?
+????? Қатты диск
+????? Файл аты
+????? Компакт дискі
+????? Файл
+????? Файлдар жүйесі
+
+##### Файл аты дегеніміз не?
+????? Файл қасиеттерінің біреуі, файлға тура сілтеп тұрады
+????? Файлдарды сақтаудың мүлдем басқаша жүйесі
+????? Алмастырылмайтын дискілі магниттік жинақтаушы
+????? Дискілік аймақтың негізгі физикалық бірлігі
+????? Жай, күрделі, структуралық, циклдық
+
+##### Ақпаратты сақтауда қолданылатын дискреттік дискілік аймақтардың жиыны?
+????? Кластер
+????? Дискета
+????? Қатты диск
+????? Файл
+????? Компакт дискі
+
+##### ... компьютер жұмысына керекті мәліметтерді тұрақты түрде сақтау үшін керек?
+????? Қатты диск немесе винчестер
+????? Ескі типті дисктер
+????? Рестрлер мен қатты дисктер
+????? Жады
+????? Функция
+
+##### Биттер тізбегі диск пластиналарына оқу/жазу бастиегі арқылы оның бетін қандай жолмен жазылады?
+????? магниттеу
+????? стандартты
+????? үлкейтілген
+????? кіші
+????? стандартты емес
+
+##### Қазіргі операциялық жүйелердің көбісі бірнеше файлдық жүйелермен жұмыс істейді, олардың ең көп тарағандары ?
+????? FAT32 және KTF8
+????? FAT23
+????? FAT123 және KTF8
+????? FAT33 және KTF10
+????? FAT23 және KTF99
+
+##### Диск кеңістігін тиімді түрде пайдалану тәсілін анықтайды?
+????? кластер
+????? функция
+????? программа
+????? операция
+????? жүйе
+
+##### Файлдық жүйе маңызды қанша жұмыс түрінде атқарады?
+????? үш
+????? екі
+????? бес
+????? жеті
+????? төрт
+
+##### Компьютердің қосу батырмасына басқаннан кейінгі жүктелетін ең бірінші құрылғы?
+????? қоректендіру блогы
+????? монитор
+????? клавиатура
+????? құжаттар
+????? жұмыс үстелі
+
+##### Процессордің жұмысы?
+????? жүйелік жадыдан біртіндеп командаларды оқу және орындау
+????? ақпаратты визуалды түрде ұсынады
+????? өшіру
+????? сілтеуішті іске қосу
+????? қолданушының құжаттарын оқу
+
+##### Тікелей адресатталған жадының түрлері ...
+????? стандартты жады және жоғарғы жады
+????? стандартты жады және виртуальды жады
+????? виртуальды жады және жоғарғы жады
+????? жоғарғы жады және үлкейтілген жады
+????? кіші жады және жоғарғы жады
+
+##### EMS спецификациясы қандай жолмен жасалады?
+????? керекті бейнелерді жеке Exponded Memory жолдарымен
+????? керекті бейнелермен
+????? бейнелермен
+????? жеке жолдармен
+????? жолдармен
+
+##### UMA терезесінде қандай ақпарат бар?
+????? қайта жасалмайтын ақпарат
+????? қайта жасалатын ақпарат
+????? қайта өңделетін ақпарат
+????? қайта өңделмейтін ақпарат
+????? қайта түзетілетін ақпарат
+
+##### ЭЕМ –нің пайда болуы неше сатыдан тұрады?
+????? 6
+????? 7
+????? 4
+????? 5
+????? 3
+
+##### Бірінші сатысы қай жылдар аралығын қамтиды?
+????? 1950-1960ж.ж
+????? 1948-1950ж.ж
+????? 1960-1970ж.ж
+????? 1945-1955ж.ж
+????? 1965-1975ж.ж
+
+##### Чипсеттегі CMOS-жады төмендегілердің қайсысын бақылайды?
+????? дәл уақытты
+????? микропроцессор жағдайын
+????? BIOS жағдайын
+????? компьютер желілерін
+????? желілер жағдайын
+
+##### Қазіргі негізгі жүйелік жинақ қанша базалық микросхемадан тұрады?
+????? 2
+????? 3
+????? 4
+????? 5
+????? 6
+
+##### Неғұрлым атақты микросхема жиындарын қандай компания шығарады?
+????? Intel
+????? Hewlett Packard
+????? XP
+????? Canon
+????? LG
+
+##### Чипсетте негізінен неше USB-2.0 порттары орналасады?
+????? 6
+????? 4
+????? 8
+????? 5
+????? 2
+
+##### 2003жылы Intel фирмасы қандай сериялы чипсеттер шығарады?
+????? 900
+????? 1000
+????? 800
+????? 850
+????? 1100
+
+##### Жүйелік платадағы оперативтік модульдерін орналастыратын разъемдер?
+????? слоттар
+????? разъемдар
+????? чипсет
+????? кардридер
+????? картридж
+
+##### Жүйелік платадағы Cashe Level 2 көлемі?
+????? 128-1024 кбайт
+????? 512-1024 кбайт
+????? 128-512 кбайт
+????? 256-1024 кбайт
+????? 128-256 кбайт
+
+##### BIOS-тағы системаның ең терең құрылымын басқаратын бағдарлама?
+????? System Setup
+????? System Install
+????? System Uninstall
+????? Setup Install
+????? Install System
+
+##### Қазіргі күнгі компьютерлерде кеңінен қолданылатын шина:
+????? PCI
+????? AGP
+????? DDR стандартты
+????? SCSI
+????? DIMM
+
+##### Микроэлектроникада басты бағытты алатын микросхемалар:
+????? «аса үлкен интегралдық сұлбалар (схемалар)» (АҮИС)
+????? «үлкен интегралдық сұлбалар» (БИС)
+????? матрицалық микропроцессорлар
+????? транзисторлық микропроцессорлар
+????? түйін (ядро) өлшемінің кішіреюімен
+
+##### Операндалар кодтарын қосу және басқа әрекеттер орындау үшін пайдаланылады:
+????? регистрлер
+????? жыжытқыштар
+????? түрлендіргіштер
+????? сумматор
+????? комбинациялық сұлбалар (схемалар)
+
+##### Бірінші сатыдағы құралған машиналарды «Үлкен арифмометрлер» деген қай академик?
+????? В.М.Глушков
+????? О.П.Ильина
+????? Я.А.Хетагурова
+????? Ю.С.Ломов
+????? П.А.Тимофеев
+
+##### ЭЕМ-нің құралуының екінші сатысы қай жылдар аралығын құрайды?
+????? 1960-1970ж.ж
+????? 1958-1968 ж.ж
+????? 1955-1965ж.ж
+????? 1950-1960ж.ж
+????? 1972-1980 ж.ж
+
+##### IBM 2250 компьютерлерге арналған монитор қай жылы ойлап табылды?
+????? 1964ж.
+????? 1965ж.
+????? 1970ж.
+????? 1958ж.
+????? 1960ж.
+
+##### Ақпараттарды сақтаудың арнайы бірлігі ретінде қандай өлшемді пайдалана бастады?
+????? байт
+????? бит
+????? мегабайт
+????? мегабит
+????? киллобайт
+
+##### 1980 жылдан бастап ЭЕМ-дер қандай зат негізінде пайда бола бастады?
+????? микропроцессорлар
+????? чипсеттер
+????? схемалар
+????? аналық платалар
+????? жүйелік блоктар
+
+##### 1976 жылдың сәуірінде ең бірінші ДК-ді кімдер ойлап тапқан?
+????? Стив Джобс және Стефан Возняк
+????? Стив Джобс және Роберт Нойс
+????? Кен Олсон және Стефан Возняк
+????? Билл Гейтс және Стефан Возняк
+????? Стив Джобс және Кен Олсон
+
+##### 1982ж. Intel фирмасы қазіргі кезде көп қолданбалы зат нені ойлап тапты?
+????? флеш-жады
+????? CD-ROM
+????? дискет
+????? DVD-ROM
+????? Cash-жады
+
+##### Жиі есте сақтау құрылғыларырың қызметтері :
+????? мәліметтерді жинау
+????? мәліметтерді тазару
+????? мәліметтерді сақтау
+????? мәліметтерді өңдеу
+????? мәліметтерді түрлендіру
+
+##### Жиі есте сақтау құрылғыларына ақпаратты жазу қалай орындалады?
+????? программамен және компьютермен
+????? прагмисотормен
+????? монитормен
+????? жүйелі программамен
+????? есте сақтау құрылғысымен
+
+##### Жиі есте сақтау құрылғыларының типтері қандай?
+????? жауаптың бәрі дұрыс
+????? классикалық және массалық жиі есте сақтау құрылғысы
+????? ROM
+????? PROM
+????? флеш-жадының құрылғысы
+
+##### Флеш-жады құрылғысы тез әрекеттесетін және өте пайдалы жиі есте сақтау құрылғылары:
+????? барлығы дұрыс
+????? қатты дискілер
+????? BIOS программасын есте сақтау
+????? дискеттен жаңарту және ауыстыру
+????? жаңа мәліметтер ағыны үлкен қысымда оперативті есте сақтауы ...
+
+##### Динамикалық аймақтағы жады кезінде көлем жетпегенде ... пайдалынылады;
+????? виртуальды есте сақтау
+????? бірнеше ұяшықтар
+????? адрестік сегменттер
+????? адрестік кеңістіктер
+????? дрестік разрядтылықпен
+
+##### Драйвер дегеніміз ...
+????? компьютердің ішкі жады құрылғысымен ақпарат алмастыратын арнайы программа
+????? компьютердің есте сақтауын қамтамасыз еттеді
+????? ішкі жадыны қорғайды
+????? компьютердің жұмысын жеңілдеттеді
+????? деректер қорының жұмысын жүргізіп отыратын программа
+
+##### Стандартты жадының көлемі қандай?
+????? 640 Мбайт
+????? 310 Мбайт
+????? 720 Мбайт
+????? 567 Мбайт
+????? 256 Мбайт
+
+##### Қай жадының көлемі 1024 Кбайттан жоғары?
+????? үлкейтілген жады
+????? стандартталғар жады
+????? жоғарғы жады
+????? виртуальды жады
+????? кіші жады
+
+##### Жоғарғы жадының көлемі қандай?
+????? 384 Кбайт
+????? 348 Кбайт
+????? 720 Кбайт
+????? 567 Кбайт
+????? 256 Кбайт
+
+##### Үлкейтілген жадының қанша мүмкіндігі бар?
+????? 2
+????? 3
+????? 4
+????? 5
+????? 6
+
+##### XMS және EMS қай жадының негізгі мүмкіндігі болып табылады?
+????? үлкейтілген жады
+????? стандартталған жады
+????? драйвер
+????? кіші жады
+????? стандартты емес жады
+
+##### XMS спецификациясы арнайы ... көмегімен ұйымдастырылады?
+????? драйвер
+????? жады
+????? кіші жады
+????? үлкейтілген жады
+????? жоғарғы жады
+
+##### Үлкейтілген жады қай программа үшін қолданылады?
+????? бастапқы жолмен кейбір программаларды сақтау үшін
+????? бастапқы жол үшін
+????? барлық програмаларды сақтау үшін
+????? кейінгі жолмен сақтау үшін
+????? программаларды жою үшін
+
+##### Виртуалды жады сегмент өз ішінде неге бөлінеді?
+????? парақтарға
+????? жолдарға
+????? бағаналарға
+????? беттерге
+????? тізбектерге
+
+##### Операциялық системаның қанша сызбанұсқасы бар?
+????? 2
+????? 10
+????? 5
+????? 4
+????? 7
+
+##### Виртуалды және физикалық беттерге ... қойылады
+????? номер
+????? жолдар
+????? бағаналар
+????? белгі
+????? үтір
+
+##### ПЗУ облысы мен BISO програмасы қандай жадыға жатады?
+????? жоғарғы жады
+????? үлкейтілген жады
+????? стандартты жады
+????? виртуальді жады
+????? кіші жады
+
+##### Интерфейстік жүйе неше түрге бөлінеді?
+????? механикалық, логикалық
+????? логикалық, механикалық
+????? физикалық, логикалық
+????? логикалық, физикалық
+????? физикалық, механикалық
+
+##### Барлық интерфейстерді ЭВМ-де қандай түрге бөлуге болады?
+????? ішкі машиналық және сыртқы
+????? сыртқы және ішкі машиналық
+????? сыртқы және машиналық
+????? ішкі машиналық
+????? сыртқы
+
+##### Ішкі машиналық интерфейс қандай түрге бөлінеді?
+????? көпбайланысты, бірбайланысты
+????? үш байланысты
+????? екі байланысты, көпбайланысты
+????? көп байланысты
+????? екі байланысты
+
+##### Интерфейс қандай терминдерді қолданады?
+????? контроллер және адаптер
+????? адаптер
+????? контроллер
+????? бейнеадаптер, видеоадаптер
+????? видеотерминал
+
+##### Шинаның разрядтылығы қандай?
+????? 8, 16, 32, 64
+????? 4, 6, 8, 10
+????? 6, 8, 10, 12
+????? 8, 10, 6, 64
+????? 10, 12, 16, 64
+
+##### Сапалық шина қандай әртүрлі жүйелерде қолданылады?
+????? созылмалы шина, локальді шина
+????? жүйелік шина, созылмалы шина
+????? кодтық шина, локальді шина
+????? жүйелік шина, кодтық шина
+????? қорытылу шина, созылмалы
+
+##### Жүйелік шина информациясының теориялаушының неше бағыты бар?
+????? 3
+????? 5
+????? 4
+????? 6
+????? 8
+
+##### Байланыс элементі, түрлері, контакт номерлері қандай интерфейстік жүйеге жатады?
+????? механикалық
+????? логикалық
+????? көпбайланысты
+????? созылмалы шина
+????? бірбайланысты
+
+##### Ақпараттың бір мезгілде бірнеше байланыстың берілуі қалай аталады?
+????? шина
+????? бірбайланысты интерфейс
+????? созылмалы шина
+????? көпбайланысты интерфейс
+????? интерфейс
+
+##### Шина PC/XT-ның шектелген адрес көлемі қандай?
+????? 1 Мбайт
+????? 5,5 Мбайт
+????? 16 Мбайт
+????? 4,77 МГц
+????? 8 Мбайт
+
+##### Компьютер жұмыс жасап тұруы үшін қандай шарт орындалады?
+????? оперативтік жадыда мәлімет және программа болуы тиіс
+????? дискі салынуы тиіс
+????? тышқан іске қосылып тұруы керек
+????? тоқ көзіне қосылуы тиіс
+????? пернетақта тоққа қосылуы қажет
+
+##### Қандай шинаның кабельдері мен ағытқыштары телефондікіне ұқсас болып келеді?
+????? USB
+????? VESA
+????? Intel
+????? EISA
+????? BST
+
+##### Болашақта USB шинасына USB құрылғыларды қосу қандай жолмен орындалады?
+????? USB құрылғысын екі немесе үш ажыратқышқа қосу арқылы
+????? USB құрылғысын бір ажыратқышқа қосу арқылы
+????? USB құрылғысын қолданбау арқылы
+????? тышқан принтерді қосу арқылы
+????? пернетақта мен сканерді қосу арқылы
+
+##### Шина PC/AT-тың теориялық түрде берілген көлемі қандай?
+????? 16 Мбайт/с
+????? 16 МГц/с
+????? 1 Мбайт/с
+????? 4,77МГц
+????? 8 Мбайт/с
+
+##### Компьютерлерде кең тараған шина түрі?
+????? перифериялық шина
+????? РСТ
+????? кеңейтілу шинасы
+????? жүйелік шина
+????? VESA
+
+##### Жүйелік платаны басқалай қалай атайды?
+????? аналық плата
+????? жүйелік адаптер
+????? платина
+????? аналық адаптер
+????? ақпараттық жүйе
+
+##### Үстел ДК аналық платасының ауданы қандай?
+????? 100-150 см²
+????? 150-200 см²
+????? 250-300 см²
+????? 50-100 см²
+????? 150-250 см²
+
+##### Socket7, Slot1, Socket370, Socket8 дегеніміз не?
+????? аналық платадағы процессорлық разъемдар
+????? аналық платадағы видеоконтроллер адаптерлері
+????? аналық платадағы аудиоадаптер разъемдары
+????? шиналық разъемдар
+????? аналық платадағы оперативтік жады
+
+##### Платалардың базалық типтік-өлшемдерін не деп атайды?
+????? форм-факторлар
+????? формалар
+????? факторлар
+????? формалық өлшемдер
+????? формальді типтер
+
+##### 8,2х10,7 дюймдік плата форматы
+????? Mini LPX
+????? Baby AT
+????? Full-Size AT
+????? Mini ATX
+????? ATX
+
+##### Чипсеттегі CMOS-жады төмендегілердің қайсысын бақылайды?
+????? дәл уақытты
+????? микропроцессор жағдайын
+????? BIOS жағдайын
+????? компьютер желілерін
+????? желілер жағдайын
+
+##### Неғұрлым атақты микросхема жиындарын қандай компания шығарады?
+????? Intel
+????? Hewlett Packard
+????? XP
+????? Canon
+????? LG
+
+##### Жүйелік платадағы оперативтік модульдерін орналастыратын разъемдер?
+????? слоттар
+????? разъемдар
+????? чипсет
+????? кардридер
+????? картридж
+
+##### BIOS-тағы системаның ең терең құрылымын басқаратын бағдарлама?
+????? System Setup
+????? System Install
+????? System Uninstall
+????? Setup Install
+????? Install System
+
+##### Локальді компьютер желілері күйінің диагностикасы
+????? AI Net
+????? AI BIOS
+????? AI OverLocking
+????? AI Audio
+????? AI Video
+
+##### Жүйелі платадағы тактілік контакттарға орналастырылатын, алынатын перемычка?
+????? джампер
+????? плейер
+????? ридер
+????? джампинг
+????? райтер
+
+##### Машинаның барлық блоктарымен жұмыс істейтін және ақпаратпен арифметикалық және логикалық операцияларды орындауды басқаратын ДК орталық құрылғы қалай аталады?
+????? микропроцессор
+????? монитор
+????? жүйелік блок
+????? принтер
+????? сканер
+
+##### Адам мен компьютер арасындығы байланыс құрылғыларын белсенді жұмыс істеуін қамтамасыз ететін құрылғы ол-
+????? интерфейс
+????? микропроцессор
+????? принтер
+????? сканер
+????? монитор
+
+##### Енгізу мен шығару порты арқылы ДК-де басқа құрылғылармен ақпарпат алмасатын элемент...
+????? интерфейс
+????? модем
+????? модель
+????? интернет
+????? факс
+
+##### Компьютердің негізгі интерфейсті жүйесі, оның барлық құрылғыларын бірігумен әрекеттесу байланысын қамтамасыз ететін құрылғы...
+????? жүйелік шина
+????? шина
+????? интерфейс
+????? негізгі жад
+????? сыртқы жад
+
+##### Машинаның басқа блоктарымен ақпаратты оперативті алмастыру мен сақтауға арналған құрылғы...
+????? негізгі жад
+????? сыртқы жад
+????? интерфейс
+????? жүйелік шина
+????? модем
+
+##### Тұрақты сақтау құрылғысы қысқаща қалай аталады?
+????? ТСҚ
+????? ОСҚ
+????? ССҚ
+????? ПСҚ
+????? ЖСҚ
+
+##### Оперативті сақтау құрылғысы қысқаша қалай аталады?
+????? ОСҚ
+????? ТСҚ
+????? ЖСҚ
+????? ССҚ
+????? ПСҚ
+
+##### ДК автономдық және торлық энерго-қор жүйесінен тұратын блок қалай аталады?
+????? блокпитания
+????? жүйелік шина
+????? шина
+????? сыртқы жад
+????? ішкі жад
+
+##### Қажетті кезінде автоматты түрде ағымдағы уақыт сәтін (жыл, ай, сағат, минут, секунд) өзгертіп отыруды қамтамасыз ететін нақты уақыттың машина ішіндегі электронды сағаты...
+????? таймер
+????? кэш
+????? шина
+????? жүйелік шина
+????? блокпитания
+
+##### Нашар жұмыс істейтін есте сақтау құрылғыларын сақтайтын ақпараттары бар операцияны тездету үшін компьютердің автоматты құлданылатын тез қызмет істейтін, қолданушыға ұстанатын буферлік жад қалай аталады?
+????? КЭШ жады
+????? сыртқы жад
+????? ішкі жад
+????? модем
+????? модель
+
+##### Оперативті жады қандай микросхемаларды құруы мүмкін?
+????? Динамикалық және статикалық
+????? Оптикалық және динамикалық
+????? Магниттік және оптикалық
+????? Магниттік және статикалық
+????? Аралас
+
+##### Магниттік дискілер ... жатады.
+????? Машиналық магниттік ақпарат тасымалдаушыларға
+????? Оптикалық ақпарат тасымалдаушыларға
+????? Машиналық ақпарат тасымалдаушыларға
+????? Оптикалық магниттік ақпарат тасымалдаушыларға
+????? Оптикалық динамикалық ақпарат тасымалдаушыларға
+
+##### Цифрлық видеодиск жинағыштар?
+????? DVD
+????? VHD
+????? HMOD
+????? CD-RW
+????? Flash
+
+##### Тасушы түсінігінде қандай объект танылады?
+????? Ақпаратты сақтай алатын материалдық объект
+????? Ақпаратты сақтай алмайтын объект
+????? Жалпы объект
+????? Материалдық объект
+????? Дұрыс жауабы жоқ
+
+##### Компакт диск операторлық жинақтауыштары
+????? CD-ROM
+????? DVD
+????? VCD
+????? HMOD
+????? VHD
+
+##### Жұмсақ магниттік дискілер?
+????? Флоппи дискі жинағыштар немесе дискеттер
+????? DVD дискілер
+????? Қатқыл диск
+????? CD-ROM дискілері
+????? Дұрыс жауабы жоқ
+
+##### Қатты магниттік дискі жинағыштар?
+????? Винчестрлер
+????? Флоппи дискі жинағыштар немесе дискеттер
+????? DVD дискілер
+????? Қатқыл диск
+????? CD-ROM дискілері
+
+##### Өте жоғарғы тығыздық жазба жинағыштар?
+????? Very High Density (VHD)
+????? CCWOR
+????? DVD
+????? CD-ROM
+????? Қатқыл диск
+
+##### Ауыспалы қатты магниттік диск жинағыштар қандай эффекті қолданады?
+????? Бернули
+????? Бірлік
+????? Ленталы
+????? Дискілік
+????? Дұрыс жауабы жоқ
+
+##### Бір рет жазылып және көп рет оқылатын жинағыш?
+????? CCWOR
+????? Very High Density
+????? CD-ROM
+????? DVD
+????? Қатқыл диск
+
+##### Флоппи диск жинағыштар ағылшынша?
+????? Flopticol
+????? Compact Disc
+????? Only Memory Disc
+????? Density
+????? Flash Disc
+
+##### Сыртқы есте сақтау құрылғылары нешеге бөлінеді?
+????? 2
+????? 3
+????? 4
+????? Бөлінбейді, себебі бір құрылғы ғана
+????? Дұрыс жауабы жоқ
+
+##### Дискілік құрылғылар нешеге бөлінеді?
+????? 3
+????? 2
+????? 5
+????? 4
+????? 6
+
+##### Дискілік құрылғылар қандай түрге бөлінеді?
+????? 3
+????? 2
+????? 5
+????? 4
+????? 6
+
+##### Мультимедиалық баспа деген не?
+????? Компакт дискілер арқылы таратылатын программалар
+????? Қатқыл диск арқылы таратылатын программалар
+????? Жай программаның түрі
+????? DVD дискілер арқылы таратылатын программалар
+????? Дұрыс жауабы жоқ
+
+##### Төмендегі дисководтардың қайсысы ақпаратты немесе программаны компакт-дискілерге жаза алады?
+????? Аз көлемді ақпаратты сақтау үшін
+????? Үлкен көлемді мәліметтерді сақтау үшін
+????? Программаларды сақтау үшін
+????? Кез келген мәліметтерді және программаларды сақтау үшін
+????? Дұрыс жауабы жоқ
+
+##### Қағазға жазылған мәліметтің кез келген түрін ( сурет, сызба, кітапмәтіні) оптикалық негізге сүйене отырып компьютерге жылдам енгізе алатын құрылғы
+????? Сканер
+????? Принтер
+????? Процессор
+????? клавиатура
+????? тышқан
+
+##### Mustek SF-630 сканері секундына неше бетті енгізеді?
+????? 10
+????? 12
+????? 2
+????? 3
+????? 100
+
+##### Сканердің қандай түрлері бар?
+????? Планшетті сканер ,парақты сканер, барабанды сканер, проекті сканер,слайд-сканері
+????? Планшетті сканер , барабанды сканер, проекті сканер,слайд-сканері
+????? Планшетті сканер ,парақты сканер, проекті сканер,слайд-сканері
+????? Планшетті сканер ,парақты сканер, барабанды сканер,слайд-сканері
+????? парақты сканер, барабанды сканер, проекті сканер,слайд-сканері
+
+##### Әр түрлі сигналдарды: музыка, сөйлеу, шулы әсерлер, жазу және қайта жаңғырту не арқылы қолданылады?
+????? дыбыстық карта
+????? мультимедиа
+????? бейнеадаптер
+????? сұйық кристалды дисплейлер
+????? фторлы фильтрлар
+
+##### Дыбыстық картаның көмегімен шығарылған дыбыс қалай аталады?
+????? жинақталған
+????? шашыраңқы
+????? шулы
+????? музыкалық
+????? жаңғыртылған
+
+##### Шығару режиімінде дыбыстық карта қандай құрылғы сияқты қолданылады?
+????? музыкалық құрылғы
+????? видеотерминалдық құрылғы
+????? мультимедия
+????? интерфейстік құрылғы
+????? қортылу құрылғысы
+
+##### Фазалы модулятор дыбысы нені анықтайды?
+????? жиілігін
+????? амплитудасын
+????? кернеуін
+????? жылдамдығын
+????? уақытын
+
+##### 16 разрядты дыбыстық платалар қанша операторлық синтезаторды қолданыды?
+????? 4
+????? 2
+????? 3
+????? 7
+????? 5
+
+##### Амплитуда сигналы әр музыкалық аспаптарда ...
+????? әр түрлі
+????? бірдей
+????? үш түрлі
+????? екі түрлі
+????? бір түрлі
+
+##### Дыбыстық карталардың көп тараған разрядтылығының түрі:
+????? 8 және 16 разрядтылық
+????? 9 және 18 разрядтылық
+????? 12 және 1 разрядтылық
+????? 21 және 42 разрядтылық
+????? 8 және 15 разрядтылық
+
+##### Қандай модуль өзіне музыкалық құрылғы интерфейсін қосады?
+????? интерфейс модулі
+????? жинақталған дыбыс модулі
+????? жазу модулі
+????? жазу және жаңғырту модулі
+????? жаңғырту модулі
+
+##### 8 разрядты дыбыстық платалар ... сапасын қамтамасыз етеді
+????? дыбыс шығару
+????? есте сақтау
+????? жазу
+????? компакт-дискідегі аудиожүйелік
+????? қайта жаңғырту
+
+##### Қатты дискіден көшіргенде жақсы платалардың есте сақтау қабілеті қанша Мбайттан төмен болмауы керек?
+????? 1 Мбайт
+????? 2 Мбайт
+????? 32 Мбайт
+????? 15 Мбайт
+????? 128 Мбайт
+
+##### Разрядтылық .......................модуліне жатады
+????? жазу және жаңғырту
+????? жазу
+????? интерфейс
+????? енгізу
+????? жаңғырту
+
+##### ...аса сапалы дыбыстарды қамтамасыз етеді.
+????? WT синтез
+????? PCI
+????? API
+????? FM синтез
+????? ICL
+
+##### 16 разрядты дыбыстық платалар ... сапасын қамтамасыз етеді.
+????? компакт-дискідегі аудиожүйеліктің
+????? қайта жаңғырту
+????? есте сақтаудың
+????? дыбыс шығарудың
+????? жазудың
+
+##### Қазіргі кезде дыбыстық карталардың қосылуына қандай интерфейс қолданылады?
+????? PCI
+????? API
+????? ICL
+????? WT
+????? FM
+
+##### Дыбыстық технологиялар компьютердің қамтамасыз ету мүмкіншілігі бойынша нешеге бөлінеді?
+????? 2
+????? 1
+????? 5
+????? 3
+????? 6
+
+##### Жинақталған дыбыс модуліне қайсысы жатады?
+????? FM және WT
+????? PCI және ICL
+????? WT және ACPI
+????? ICL және FM
+????? ICL және ACPI
+
+##### WT синтез қандай дыбыстарда қамтамасыз етеді?
+????? аса сапалы
+????? музыкалық
+????? сапалы
+????? дыбыстық
+????? сапасыз
+
+##### Қандай модулятор дыбысы жиілікті анықтайды?
+????? фазалық
+????? дыбыстық карта
+????? қоршаулы генератор
+????? интерфейстік
+????? қорытылу
+
+##### Жинақталған дыбыс ненің көмегімен шығады?
+????? дыбыстық карта
+????? мультимедия
+????? қайта жаңғырту
+????? бейне адаптер
+????? фторлы фильтрлар
+
+##### Үш модульді құрайтын плата
+????? функционалдық
+????? аналитикалық
+????? арифметкалық
+????? дұрыс жауабы жоқ
+????? бәрі дұрыс
+
+##### Компакт-дискідегі аудиожүйеліктің сапасын қамтамасыз ететін платалар
+????? 16 разрядтылық
+????? 32 разрядтылық
+????? 8 разрядтылық
+????? 12 разрядтылық
+????? 128 разрядтылық
+
+##### Дыбыстық карта қайда орналасқан?
+????? аналық платада
+????? дисплейда
+????? жүйелік блокта
+????? мультимедияда
+????? компьютер жадында
+
+##### Дыбыстық карта дегеніміз-...
+????? әр түрлі сигналдарды шығару,жазу,қайта жаңғырту
+????? әр түрлі бейнелерді шығару
+????? қайта жаңғырту
+????? тасымалдау құрылғысы
+????? бейнелеу құрылғысы
+
+##### Видеотерминалды құрылғы дегенім не?
+????? Қолданушылардың бейнеллерді, түстерді, графикалық ақпараттарды жедел көрсетуі үшін арналған құрылғы
+????? компьютердің бөлшегі
+????? программаны орындау нәтижесі
+????? Микропроцессордың микро архитектурасы
+????? MS DOS –тың функционалды негізі
+
+##### Видеотерминалды құрылғының қандай екі түрі бар ?
+????? бейнеконтролллер , бейнемонитор
+????? бейнеадаптер, сканер
+????? бейнежад
+????? монитор, дисплей
+????? принтер, модем
+
+##### Бейнеконтроллер ДК қай құрылғысына қатысты ?
+????? жүйелік блок
+????? принтер
+????? дисплей
+????? тышқан
+????? бейнежад
+
+##### Бейнеконтроллер қайда орналасқан ?
+????? Аналық тақшаның бейне картасында
+????? Жүйелік блокта
+????? Дисплейде
+????? Шинада
+????? Оперативті есте сақтау құрылғысында
+
+##### Бейнемониторлар қандай құрылғыға жатады?
+????? Сыртқы
+????? Ішкі
+????? Жүктеулі
+????? Жүйелі
+????? арнаулы
+
+##### Бейнемонитордың қызметі қандай ?
+????? Ақпаратты экран бетіне визуалды түрде шығару
+????? Ақпаратты баспаға шығару
+????? Байланыс орнату
+????? Оперативті есте сақтау
+????? Ақпаратты таспаға жазу
+
+##### Бейнемониторлар құрамына не кіреді ?
+????? Электро- сәулелі түтік, бейнекүшейткіш, блокқоры
+????? Колба, электро- сәулелі түтік, пластина
+????? Бейнекүшейткіш, түтік
+????? Электро-сәулелі түтік, колба, блокқоры
+????? Блокқоры, колба, түтік
+
+##### Бейнемонитордың қандай түрлері бар ?
+????? Монохромды , түрлі-түсті
+????? Монохромды, сәулелі
+????? Түрлі-түсті, бірқалыпты
+????? Жүйелі, торлы
+????? Түрлі-түсті, торлы
+
+##### Түрлі-түсті мониторда қанша электронды пушка бар?
+????? 3
+????? 2
+????? 6
+????? 4
+????? 5
+
+##### Сәулелік сигналдармен басқарылатын мониторлардың қандай түрлері бар?
+????? Аналогтық және цифрлық
+????? Монохромды және түрлі-түсті
+????? Аналогтық және түрлі-түсті
+????? Монохромды және цифрлық
+????? Жүйелі және торлы
+
+##### Монитор фильтірінің қандай типтерін білесіз?
+????? Торлы, пленкалы, шынылы
+????? Торлы, пленкалы, камералы
+????? Прводты, пленкалы, шынылы
+????? пленкалы, шынылы, пластиналы
+????? Шынылы, пленкалы, жүйелі
+
+##### Экрандағы сенсорлы қолданылатын графикалық манипулятор дегеніміз не?
+????? Тышқан
+????? Пернетақта
+????? Экран
+????? жүйелік блок
+????? Сканер
+
+##### Компьютерден берілгендерді қағаз бетіне шығару құрылғысы
+????? Принтер
+????? Сканер
+????? Жүйелік блок
+????? пернетақта
+????? Процессор
+
+##### Принтердің қанша түрі болады
+????? 3
+????? 4
+????? 2
+????? 8
+????? 6
+
+##### Принтерлер қандай режимде жұмыс істей алады
+????? Текстік және графикалық
+????? Графикалық
+????? Қарапайым
+????? Текстік
+????? Күрделі
+
+##### Жұмыс істеу барысы ине арқылы іске асатын принтердің түрі
+????? Матричный
+????? Струйный
+????? Лазерлі
+????? Термопринтер
+????? Фиксациялы
+
+##### Қазіргі кезде ең кең тараған принтердің түрі
+????? Струйный
+????? Матричный
+????? Лазерлі
+????? Термопринтер
+????? Фиксациялы
+
+##### Матричный принтердің тобына жататын принтердің түрі
+????? Термопринтер
+????? Фиксациялы
+????? Сия бүріккішті
+????? Лазерлі
+????? Қарапайым
+
+##### Лазер сәулесі арқылы басып шығаратын құрылғысы
+????? Лазерлі
+????? Сия бүріккішті
+????? Күн сәулелі
+????? Инелік
+????? Термопринтер
+
+##### Дыбыс шығармай жұмыс істеу қасиеті қай принтерге тән
+????? Сия бүріккішті
+????? Лазерлі
+????? Қарапайым
+????? Инелік
+????? Термопринтер
+
+##### Қағазға жазылған мәліметтің кез келген түрін (сурет, сызба , кітап мәтіні) оптикалық негізге сүйене отырып компьютерге жылдам енгізе алатын құрылғы
+????? Сканер
+????? Принтер
+????? Процессор
+????? Пернетақта
+????? Тышқан
+
+##### Сканердің қанша типі бар?
+????? 6
+????? 10
+????? 2
+????? 5
+????? 8
+
+##### Mustek SF-630 сканері секундына неше бетті енгізеді?
+????? 10
+????? 15
+????? 8
+????? 2
+????? 9
+
+##### Фото суреттер мен музыканы қосып, қай программамен жасауға болады?
+????? Windows movie maker
+????? Windows медиа плеер
+????? Звукозапись
+????? Microsoft Excel
+????? Microsoft Accses
+
+##### Қандай програмамен Фото суреттерді өзгертуге болады
+????? Paint, Photoshop.
+????? Microsoft Word
+????? Power-point
+????? DVD-проигрыватель
+????? Microsoft Accses
+
+##### Фильмдерді қай программалармен ашуға болады?
+????? DVD-проигрывательмен, Windows медиа плеермен
+????? Windows Picture and Fax viewer
+????? Microsoft Word
+????? Tour Windows XP
+????? Microsoft Accses
+
+##### CorelDraw программасы қандай жұмыс атқарады?
+????? Дизайындық жұмыс атқарады
+????? Музықалық файлдардың форматтарды ауыстыру
+????? Документ файлдарды жазу үшін
+????? Интернеттен әр түрлі құжаттарды алу үшін
+????? Программаны дайындау үшін
+
+##### Дыбыс картамен видео карта қандай тақырыпқа жатады?
+????? Мультимедия
+????? Ақпарат және Ақпараттану
+????? Қолданбалы программа
+????? Компьютерлік графика
+????? Microsoft Accses
+
+##### Мультимедияның аспаптарын көрсетініз
+????? Құлақшыңдар, колонкалар,микрофон
+????? Мониторлар
+????? Жүелік блок, процессорлар
+????? Аналық плата
+????? ОЗУ
+
+##### Paint графикалық редакторын іске қосу қалай орындалады
+????? Бас меню-Программалар-стандартные-Paint
+????? Бас меню-Программалар-стандартные-блокнот
+????? Бас меню-Программалар-стандартные wordPad
+????? Бас меню-Программалар-игры
+????? Бас меню-программалар-развлечения-звукозапись
+
+##### Компьютердің дыбыс шығу функциясы қай құрылғы арқылы жасаланады?
+????? Дыбыстық карта арқылы
+????? Кабельдер қылы
+????? ОЗУ арқылы
+????? Қатты диск арқылы
+????? Шина арқылы
+
+##### Мультимедия қандай апликацияларды көрсете алады?
+????? Movies
+????? Coreldrew
+????? Quark express
+????? Flash Get
+????? Microsoft Accses
+
+##### Қазіргі күнгі компьютерлерде кеңінен қолданылатын шина:
+????? PCI
+????? AGP
+????? DDR стандартты
+????? SCSI
+????? DIMM
+
+##### Микроэлектроникада басты бағытты алатын микросхемалар:
+????? «аса үлкен интегралдық сұлбалар (схемалар)» (АҮИС)
+????? «үлкен интегралдық сұлбалар» (БИС)
+????? матрицалық микропроцессорлар
+????? транзисторлық микропроцессорлар
+????? түйін (ядро) өлшемінің кішіреюімен
+
+##### Операндалар кодтарын қосу және басқа әрекеттер орындау үшін пайдаланылады:
+????? регистрлер
+????? жыжытқыштар
+????? түрлендіргіштер
+????? сумматор
+????? комбинациялық сұлбалар (схемалар)
+
+##### E-mail (Electronic Mail) немесе электрондық пошта арнайы пошталық программалар негізінде іске асырылады:
+????? Outlook Express
+????? IP/TCP
+????? Usenet
+????? Microsoft Internet Explorer
+????? www. E-mail
+
+##### Белгілі бір электрондық поштаның адресін қандай каталогты қолдану арқылы табуға болады:
+????? Microsoft Internet Explorer программасының «People on the Web» каталогын
+????? Microsoft Access программасының «People on the Web» каталогын
+????? Microsoft Internet Explorer программасының «People on the Usenet» каталогын
+????? URL-адресінен «People on the Web» каталогын
+????? IP/TCP хаттамасының «People on the Web» каталогын
+
+##### E-mail (Electronic Mail) немесе электрондық пошта
+????? Электрондық хатты құрастыруға арналған программалық құрал
+????? Белгілі абоненттерге жіберілген ақпараттарды, хабарламалар желісі бойымен алмастыру әдістерін қолданып
+????? Белгілі абоненттерге жіберілген электрондық хаттарды құрастыруға арналған аппараттық-программалық құрал
+????? Web-қосымшаларға жіберу арқылы ақпаратпен алмасу тәсілі
+????? Web-беттерде электрондық хаттарды қарап шығуға арналған программалық құрал
+
+##### Цикл соңында барлық арифметикалық статус сигналдары сәйкес биттердің қалып-күйін өзгертеді:
+????? арифметикалық статус регистрінде (ASTAT)
+????? белгі регистрінде (AS)
+????? 0 нәтижесі регистрінде (AZ)
+????? керілеу регистрінде (AN)
+????? (AETAT)
+
+##### АЛҚ(АЛУ) суматорлы негіздік элементтерді қосу үшін пайдалану типі бойынша түйіңдеріне бөлінеді:
+????? тізбекті және паралель
+????? комбинациялық және жинақтаушы
+????? комбинациялық және паралель
+????? комбинациялық,тізбекті және жинақтаушы
+????? тізбекті және жинақтаушы
+
+##### Микропроцессор құрамына кірмейді:
+????? жедел жад модульдері
+????? орталық басқару құрылғысы
+????? арифметика-логикалық құрылғы
+????? ішкі жад
+????? регистірлі жад
+
+##### Аналық плата-бұл:
+????? порттар мен жалғанулар орналасқан құрылғы
+????? енгізу-шығару құрылғысы
+????? әртүрлі, өзара байланысқан құрылғылар комплексі
+????? американдық аналық платалар
+????? ақпарат енгізу құрылғысы
+
+##### Thunderbid-бұл процессорлардың ядросы
+????? Athlon
+????? Pentium Pro
+????? Pentium MMX
+????? Katmai
+????? Celeron
+
+##### Процессордың логикалық құрылымына бірқатар функционалды құралдар кіреді:
+????? жергілікті жад
+????? интерфейс пен арналарды (каналдарды) басқару
+????? жүйені және программаларды басқару құралдары
+????? локальді желі
+????? ақпаратты өңдеу құралдары
+
+##### Компакт дисктен ақпаратты оқу қалай жүзеге асырылады:
+????? қуаттылығы аз лазерлік сәуленің көмегімен
+????? сервомотор команда бойынша жетектің ішкі микропроцессорынан шағылыстыру айнасын қозғалтады
+????? түсетін лазер сәулесі жайылып жұтылып кетеді – фотодеректор екілік нөлді бекітеді
+????? фотодетектордан
+????? сәуле жарық шағылыстыратын аралыққа түсіп жарушы линза арқылы фотодеректорға ауады
+
+##### Желілік карта сипатталады:
+????? разрядтылығымен, мәліметтер шинасымен
+????? чип және контроль микросхемасымен
+????? жұмыс жылдамдығымен
+????? ноутбукқа арналған PC MCIA стандартты адаптер
+????? мәліметтер шинасымен
+
+##### MAC-адрес адаптерге оны шығарушы жүктейді, оны программа көмегімен өзгертуге болады:
+????? желідегі құрылғы адресіне байланысты
+????? электрондық почта арқылы қабылдаушының адресі
+????? жүйеде бір MAC-адресімен екі құрылғы табылған жағдайда
+????? желілік администратор қалауы бойынша
+????? сегіздік жүйеде жазылған код арқылы
+
+##### HTTP-сұраныстың тақырыбы мен бос жолмен бөлінген сұраныстың өзінен тұрады, мұндағы:
+????? бос жолда клиенттің электрондық адресі көрсетледі
+????? сұраныстың тақырыбы болмауы да мүмкін
+????? сұраныстың өзі де болмауы мүмкін
+????? сұраныс тақырыбы және сұраныстың өзі де болмауы мүмкін
+????? бос жолда клиенттер тізімі көрсетіледі
+
+##### HTTP (Hyper Text Transfer Protocol) –хаттама нені жіберуге арналған:
+????? гипермәтінді
+????? телеконференцияны
+????? электрондық хатты
+????? аудио ақпаратты
+????? бір бетке сілтемені
+
+##### Коллизия деген не:
+????? мәліметтер соғылысуы
+????? кабельдің түрі
+????? мәлімет алмасуда ылғи кезекте тұрады
+????? жүйедегі протокол түрі
+????? әрбір процессордың өз сыртқы кэш жады болады
+
+##### ОЖҚ (ОЗУ) неге арналған:
+????? ағымдағы мезетте ДК-де орындалып жатқан есептеу процесіне тікелей қатысатын ақпаратты жедел жазу, сақтау, және оқу үшін
+????? ақпаратты ұзақ уақыт сақтау және машинаның басқа блоктарымен жедел мәлімет алмасуға
+????? тапсырмаларды шешуге қажет болуы мүмкін ақпаратты ұзақ уақытқа сақтау
+????? тұрақты программалық ақпаратты сақтауға
+????? өзгермейтін анықтамалық ақпаратты сақтауға
+
+##### Логикалық операцияларды іске асыру, мәліметтерді мультиплексиялау, ақпаратты басқарып тасымалдау, нәтиже белгілерін құру үшін пайдаланады:
+????? регистрлер және комбинациялық сұлбалар (схемалар)
+????? жинақтаушы сұлбалар (схемалар)
+????? сумматор және комбинациялық сұлбалар (схемалар)
+????? жылжытқыштар және жинақтаушы сұлбалар (схемалар)
+????? комбинациялық сұлбалар (схемалар)
+
+##### Орталық басқару құрылғысына жатпайтын арифметика-логикалық құрылғы – қандай ядро процессорының кодтық атауы:
+????? Duron
+????? Pentium MMX
+????? Athlon
+????? Pentium 4
+????? Celeron
+
+##### Chip Set – бұл:
+????? микросхемалар жинағы
+????? жады модулі
+????? желілік контроллер
+????? локальді желі
+????? контроллердің санына
+
+##### Үзілістерді теңестіру регистрі:
+????? асинхронды адаптерден үзілістерді басқару үшін қолданылады
+????? әр түрлі қасиеттерді басқарады: мәліметтерді тасымалдау жылдамдығын, жұптылықты бақылау, BREAK сигналын тасымалдау, тасымалданатын сөздің ұзындығын
+????? программа регистрдің мазмұнын оқи отырып үзілістің себебін анықтай алады
+????? шығысында аналогты – сандық мөлшерді екілік кодқа түрлендіруді іске асырады
+????? шығысында аналогты – сандық мөлшерді он алты разрядты екілік кодқа түрлендіруді іске асырады және аналогтық сигналды қосады
+
+##### АЛҚ (АЛУ) сумматорлары бөлінеді:
+????? қосу үшін негіздік элементтерді пайдалану типі бойынша
+????? өнімділігі бойынша
+????? қосу операциялары санын сақтау көлемі бойынша
+????? редакциялау үшін негіздік элементтерді пайдалану типі бойынша
+????? дәрежеге шығару операцияларын жүзеге асыру тәсілі бойынша
+
+##### Процессордың құрылымына кіреді:
+????? орталық басқару құрылғысы, арифметика-логикалық құрылғы
+????? ішкі жад
+????? орталық басқару құрылғысы
+????? арифметика-логикалық құрылғы
+????? басқарушы құрылғылар
+
+##### Планшеттік график жасаушы-бұл:
+????? жазық бетте орналасқан бейнені мәлімет тасушыға енгізетін құрылғы
+????? қолжазбалық ақпаратты енгізуге іске асыратын электронды табло
+????? графикалық бейнелерді жазық экранға шығаратын өте кішкене компьютер
+????? графикалық бейнелерді айырып танудың кейбір процестерін келтіретін құрылғы
+????? XT-Bus 62 –түйісулі ажыратқыш
+
+##### Ethernet желісінде (frames) пакеттердің мәнінің нүктесін анықтауда қолданылады:
+????? MAC-адрес
+????? IP-адрес
+????? EMAIL
+????? VL-Bus
+????? Hab-адрес
+
+##### MAC-адрестің коды:
+????? ұзындығы 6 байт, 16-лық жүйеде жазылады
+????? желілік администратор қалауы бойынша
+????? 16-лық жүйеде жазылады
+????? 12 символдан тұрады
+????? шығарушы адресі анықтайтын алдыңғы үш байт
+
+##### Іздеуші сервер-бұл:
+????? электрондық почта абонентін іздеу программасы
+????? интернетке кіру рұқсат беретін форма
+????? электронды хатты дұрыс толтыру жолы
+????? электронды почта алатындар тізімі
+????? желілер, іздеумен айналысатын
+
+##### Шина қалып күйінің үш түрін атаңыз:
+????? жоғары деңгейлі, төмен деңгейлі және 3-ші қалып күй
+????? жоғары деңгейлі, төмен деңгейлі және бейтарап деңгейлі
+????? дискіге ерекше форма беру
+????? жоғары деңгейлі, төмен деңгейлі және орта деңгейлі
+????? жоғары деңгейлі, төмен деңгейлі және нөлді деңгейлі
+
+##### Сандарды өрнектеу тәсілдеріне қарай АЛҚ(АЛУ) топтасады:
+????? тұрақтандырылған, қозғалмалы нүктелі сандар және ондық сандар үшін
+????? тұрақтандырылған, қозғалмалы нүктелі сандар және сегіздік сандар үшін
+????? тұрақтандырылған, қозғалмалы нүктелі сандар және экспотенциал сандар үшін
+????? тұрақтандырылған, қозғалмалы нүктелі сандар және екілік сандар үшін
+????? тұрақтандырылған, қозғалмалы нүктелі сандар және он алтылық сандар үшін
+
+##### Қандай құрылғы дербес компьютердің перифериялық құрылғысына жатады:
+????? дигитайзер
+????? жүйелік тақша (плата)
+????? коректендіру логы
+????? бейнеплата
+????? электронды сұлбалар (схемалар)
+
+##### Қолданбалы программа, файлдарды осы хаттама арқылы жіберуді қамтамасыз етеді:
+????? FTP (File Transfer Protocol)
+????? Ethernet
+????? ARPANET
+????? DNS (Domain Name System)
+????? Telnet
+
+##### Нәтиже шинасы (R) қосады:
+????? сумматорлық шығу регистрлері
+????? барлық есептеу құрылғыларының шығу регистрлерін
+????? барлық есептеу құрылғыларының ену регистрлерін
+????? сумматорлық ену регистрлері
+????? дәреже көрсеткіші регистрінен (AETAT) немесе нәтиже шинасынан
+
+##### Қосу операцияларын жүзеге асыру тәсілі бойынша АЛҚ(АЛУ) сумматорлары....түйіндеріне бөлінеді:
+????? тізбекті және параллель
+????? сабақ барысын анықтау
+????? үйге берілетін тапсырманы анықтау
+????? білімді жүйелеу, алдында алған біліммен байланыстыру
+????? комбинациялық, тізбекті және жинақтаушы
+
+##### «notebook» термині нені білдіреді?
+????? қолжазбалық ақпаратты енгізуді іске асыратын құрылғы
+????? көкжиек
+????? пайдалы қазбалар
+????? көріну бейнелерін айырып танудың кейбір процесстерін келтіру
+????? қолжазбалық ақпаратты енгізуді іске асыратын электронды табло
+
+##### Аналық плата мен желілік карта арасындағы ақпарат алмасу қай мәліметтер шинасымен жүзеге асады:
+????? VL-Bus
+????? ELSA
+????? ISA
+????? PCI
+????? AGP
+
+##### Желілік карта-бұл:
+????? Ноутбукка арналған PC MCIA стандартты адаптер
+????? USB (Universal Serial Bus) портына қосылатын адаптер
+????? компьютердің аналық плата разъеміне қойылатын кеңейту платасы
+????? чип және контроль микросхемасы
+????? аналық платаға интегралданған адаптер
+
+##### Жүйелік тақта (плата) .....жасалған:
+????? араларында металл фольга орналасқан 8-ден 12-ге дейін текстолиттік пластиналардан
+????? араларында жез фольга орналасқан 8-ден 12-ге дейін металл пластиналардан
+????? араларында алюминий фольга орналасқан бірнеше қабат тоқ өткізгіш пластиналардан
+????? араларында металл фольга орналасқан бірнеше қабат кремний пластиналардан
+????? ақпаратты ұзақ уақыт сақтау және машинаның басқа блоктарымен жедел мәлімет алмасуға
+
+##### АЛҚ (АЛУ) топтасады:
+????? сандарды өрнектеу тәсілдеріне қарай және операндалармен әрекет жасау тәсілдеріне қарай
+????? символдарды өрнектеу тәсілдеріне қарай және операндалармен әрекет жасау тәсілдеріне қарай
+????? аналогтық ақпаратты өрнектеу тәсілдеріне қарай және мәтіндермен әрекет жасау тәсілдеріне қарай
+????? символдарды өрнектеу тәсілдеріне қарай және мәтіндермен әрекет жасау тәсілдеріне қарай
+????? сандарды өрнектеу тәсілдеріне қарай және функционалдармен әрекет жасау тәсілдеріне қарай
+
+##### Жедел жад модульдері микропроцессормен қалай байланысқан:
+????? арифметика-логикалық құрылғы арқылы
+????? жедел жад модульдері арқылы
+????? тікелей
+????? орталық басқару құрылғысы арқылы
+????? енгізу-шығару контроллері арқылы
+
+##### Жүйелік плата ... жасалған.
+????? аралары металл фольгасы болатын, 8-ден 12-ге дейінгі қабаттардан тұратын текстолиттік пластинасынан
+????? аралары металл фольгасы болатын, бірнеше қабаттардан тұратын кремний пластинасынан
+????? текстолит пластинасынан
+????? аралары мыс фольгасы болатын, 8-ден 12-ге дейінгі қабаттардан тұратын металл пластинасынан
+????? аралары алюминий фольгасы болатын, бірнеше қабаттардан тұратын ток өткізетін пластинасынан
+
+##### Бір модульде орасан көп чипті орнату неге алып келеді?
+????? оның жанып кетуіне
+????? қысқартылған шина жиілігіне
+????? форм фактордың өзгеруіне
+????? контактілер санының өсуіне
+????? жұмыс істеу алгоритмінің өзгеруіне
+
+##### Регенерация циклінде (refresh cycle) болатын, жазылған ақпаратты қайта қалпына келтіретін жады:
+????? динамикалық
+????? ішкі
+????? сыртқы
+????? стектік
+????? адрестік
+
+##### Микроэлектроникадағы басты бағыттарын алатын микросхемалар:
+????? «аса үлкен интегралды схемалар» (АҮИС)
+????? транзисторлы микропроцессорлар
+????? аналық микропроцессорлар
+????? ядро өлшемінің кішіреюімен
+????? «үлкен интегралды схемалар» (ҮИС)
+
+##### Цилиндр – бұл:
+????? жалпы жұмыс беттері, барлық жолдардың вертикаль бойынша бір – бірімен сәйкес келетін сомасы
+????? екі жұмыс бетін құрайтын бірнеше дискілер
+????? екі жағынан магниттік материалмен оралған бір немесе бірнеше шыны (немесе металл) дискілер
+????? ақпаратты шығаруға арналған құрылғы
+????? бір жазықтықта орналасатын, концентрлік шеңберлер
+
+##### Модем арқылы жіберетін ақпарат жылдамдығының өлшем бірлігі:
+????? бод
+????? байт
+????? бит
+????? Гбайт
+????? Кбайт
+
+##### Компьютердің сыртқы жады орналасады:
+????? жүйелі блоктың ішінде, қатқыл дискте
+????? жүйелік блокта емес, CD дискіде
+????? аналық тақшада
+????? микропроцессорда
+????? жүйелік блокта емес, ZP дискіде
+
+##### Аналық платаның міндетті атрибуттары:
+????? процессор, оперативті жады BIOS, клавиатура контроллері, кеңейту разъемдері
+????? процессор, шиналар, BIOS, тоқ көзі
+????? процессор, бейне карта, дыбыстық карта, желілік карта, BIOS
+????? процессор, дыбыстық карта, куллер, HDD, BIOS
+????? Pentium 4
+
+##### Кэш – жады:
+????? анағұрлым жиі қолданылатын программалар мен мәліметтерді сақтау үшін қызмет етеді
+????? сыртқы жады
+????? мазмұны бойынша қажетті ақпаратты іздеуді қамтамасыз етеді
+????? LIFO (Last Input – First Output) принципін жүзеге асырады
+????? ассоциативті белгіні іздеу, уақыт бойынша параллель жүретін барлық ОП ұяшықтары
+
+##### Chip Set – бұл:
+????? микросхемалар жинағы
+????? контроллер саны
+????? локальді желі
+????? желілік контроллер
+????? жады модулі
+
+##### Жоғары жиілікте жұмыс жасайтын, жіберілетін мәліметтерді қарапайым шинамен жіберетін, микросхемалармен мәліметтерді алмастырудың көпфункционалды протоколы:
+????? RDRAM
+????? DIMM
+????? SDRAM
+????? DRAM
+????? SRAM
+
+##### Регенерацияның бір циклы- бұл:
+????? Микропроцессордың ЖЕСҚ (ОЗУ)-да іздеу кезіндегі регенерацияның тығыздығы
+????? Процессордың ЖЕСҚ (ОЗУ) модуліне бір адреспен хабарласу
+????? Микропроцессордың ЖЕСҚ (ОЗУ)-ға хабарласу
+????? Порцессордың ЖЕСҚ (ОЗУ) модуліне бірнеше адреспен хабарласу
+????? Тіркеу блогындағы сөздердің сақталуы және қорытындылардың берілуі
+
+##### DVD-дискілерінің көлемі не арқылы үлкейеді?
+????? қатпарларының санының ұлғаюына
+????? спиральды жолдың түрімен
+????? жолдың үлкен тығыздығымен
+????? жолдың спиральдық түріне
+????? ұзындығы 635 нанометрден толқындар қысқарады
+
+##### Планшеттегі графикалық құрылыс бұл?
+????? ақпаратты жеткізетін, түзу бетте орналасқан кескіндемелерді шығарылатын құрылғы
+????? графикалық кескіндемелерді оқитын кейбір процессор
+????? 62-контакті разъем XT-Bus
+????? графикалық суреттерді шағын компьютердің экранына шығару
+????? электронное табло поддерживающее ввод рукописной информации
+
+##### USER-Agent-тің мағынасы болып:
+????? браузердің «кодттық мәні»
+????? басқа сұраныстарды жіберу үшін күту уақыты
+????? электронды хатты жібереді
+????? порттардың соңғы нұсқасы
+????? машиналық сөздің көлемі
+
+##### Циклдың сосында барлық арифметикалық дәрежелердің сигналы қатысты биттердің қалпы өзгереді:
+????? арифметикалық дәреже тіркеуінде (ASTAT)
+????? терістеу тіркеуінде (AN)
+????? белгілер тіркеуінде (AS)
+????? нәтижелер тіркеуінде 0 (AZ)
+????? сатылық көрсеткіш тіркеуінде (AETAT)
+
+##### DIIM-бұл:
+????? форм-фактор
+????? білімгерлердің білімнің салыстырмалы қорытындысы
+????? сабақтағы факторлық материалдың мазмұны
+????? оқудың ақпараттық кезектілігінің мазмұны
+????? оқытудың іс-тәжірибелік әдісі
+
+##### Morgan- процессор ядроның кодтық атауы
+????? Duron
+????? Athlon
+????? Celeron
+????? Petntium 4
+????? Petntium MMX
+
+##### Егер шинаға бірнеше қабылдау құрылғысы қосылса, онда басқармалары және адрестің сигналдарының арақатынасы
+????? Шинадағы мәліметтердің нақты кімге бағытталғандығын анықтайды
+????? жоғарғы бөлімге өтеді
+????? төмендегі бөлімге басқаруды береді
+????? шинадағы барлық құрылғыларға сигнал береді
+????? шинадағы мәліметтердің нақты кімге арналғандығын
+
+##### «NOTEBOOK» термині нені білдіреді?
+????? шағын компьютер, 300х200 мм блокноттың үлкен размері, массасы 3кг артық емес, батареалық питание малогабаритную клавиатуру и плоский дисплей
+????? ақпараттарды жазатын құрылғы
+????? кішігірім компьютер,массасы үлкен размерде, қолданушыға қолға ұстауына ыңғайлы
+????? ақпаратты электронды түрде жазады
+????? имитирующее некоторые процессы распознавания зрительных изображений
+
+##### Мына протокол бойынша файлдың қайта сілтемелеуін қамтамасыз ететін қолданбалы программа:
+????? FTP(File Transfer Protocol)
+????? ARPANET
+????? TELNET
+????? ETHERNET
+????? DNS(DOMIAIN NAME SYSTEM)
+
+##### DDCD ерекшелігі неде?
+????? жолды нығыздау арқылы көлемін ұлғайту
+????? 10-ға жуық жұмыс қабатына ие
+????? 140 Гбайт көлем
+????? 14 Гбайт көлем
+????? бірден бірнеше қабаттасып оқылуы
+
+##### Компьютер қолданудың интернет және басқа да желі арқылы тілдесуі әдетте тілдесуі әдетте мына мәтіндік режимде жүргізеді
+????? chat
+????? шлюз
+????? түйін
+????? домен
+????? host
+
+##### Аналогты – санды түрлендіргіш:
+????? шығысында аналогты – сандық мөлшерді екілік кодқа түрлендіруді іске асырады
+????? шығысында аналогты – сандық мөлшерді он алты разрядты екілік кодқа түрлендіруді іске асырады
+????? көп процессорлы жүйеде бұзылған жерлерді іздеу
+????? шығысында аналогты мөлшерді сегіз разрядты екілік кодқа түрлендіруді іске асырады
+????? шығысында сандық мөлшерді сегіз разрядты екілік кодқа түрлендіруді іске асырады
+
+##### Жүйенің ең «жіңішке» жерлерінде қолданылатын, жоғары тез әрекеттілігі бар жады қалай аталады:
+????? статикалық SRAM (Static Random Access Memory)
+????? тұрақты жады ROM (Read Only Memory)
+????? динамикалық
+????? стекті
+????? ассоциативті
+
+##### RDRAM – ның элементтері (дұрыс емес жауапты тап):
+????? Rambus Channel деп аталатын, чиптердің жалғану кестесі
+????? жүйелік таймермен синхрондалған DRAM
+????? қысқартылған шина
+????? Rambus ASIC (RACS) ұяшықтары
+????? Rambus-та базаланатын DRAM модулі
+
+##### «Жасыл» аналық плата (green motherboard) – бұл:
+????? энергияны үнемді қолданатын аналық плата
+????? Америкада өндірілген аналық плата
+????? Тайландта өндірілген аналық плата
+????? электр энергиясын 30 Вт қана қолданатын аналық плата
+????? Pentium MMX
+
+##### Белгілі бір электрондық поштаның адресін қандай каталогты қолдану арқылы табуға болады:
+????? Microsoft Internet Explorer программасының «People on the Web» каталогын
+????? Microsoft Access программасының «People on the Web» каталогын
+????? Microsoft Internet Explorer программасының «People on the Usenet» каталогын
+????? URL – адресінен «People on the Web» каталогын
+????? IP/TCP хаттамасының «People on the Web» каталогын
+
+##### E-mail (Electronic Mail) немесе электрондық пошта арнайы пошталық программалар негізінде іске асырылады:
+????? OutLook Express
+????? IP/TCP
+????? Usenet
+????? Microsoft Internet Explorer
+????? www. E-mail
+
+##### Үзілістерді теңестіру регистрі:
+????? асинхронды адаптерден үзілістерді басқару үшін қолданылады
+????? программа регистрдің мазмұнын оқи отырып үзілістің себебін анықтай алады
+????? әр түрлі қасиеттерді басқарады: мәліметтерді тасымалдау жылдамдығын, жұптылықты бақылау, BREAK сигналын тасымалдау, тасымалданатын сөздің ұзындығын
+????? шығысында аналогты-сандық мөлшерді екілік кодқа түрлендіруді іске асырады
+????? шығысында аналогты-сандық мөлшерді он алты разрядты екілік кодқа түрлендіруді іске асырады және аналогтық сигналды қосады
+
+##### Микропроцессор құрамына кірмейді:
+????? жедел жад модульдері
+????? арифметика – логикалық құрылғы
+????? регистрлік жад
+????? орталық басқару құрылғысы
+????? ішкі жад
+
+##### Аналық плата - бұл
+????? порттар мен жалғанулар орналасқан құрылғы
+????? әртүрлі, өзара байланысқан құрылғылар комплексі
+????? енгізу – шығару құрылғысы
+????? ақпарат енгізу құрылғысы
+????? американдық аналық платалар
+
+##### Thunderbird – бұл процессорлардың ядросы:
+????? Athlon
+????? Celeron
+????? Pentium MMX
+????? Pentium Pro
+????? Katmai
+
+##### Процессордың логикалық құрылымына бірқатар функционалды құралдар кіреді:
+????? жергілікті жад
+????? локальді желі
+????? жүйені және программаларды басқару құралдары
+????? ақпаратты өңдеу құралдары
+????? интерфейс пен арналарды (каналдарды) басқару
+
+##### ZIP – мәліметтер жинақтауыштар:
+????? архивтік ZIP файлдарды құруға арналған құрылғы
+????? CD – компакт дискілермен жұмыс істейтін құрылғы
+????? ақпаратты сақтауға арналған сыртқы құрылғы
+????? желі арқылы мәліметтер тасымалдауға арналған құрылғы
+????? ақпаратты печатқа шығаруға арналған қондырғы
+
+##### Домен (Domaine) – бұл:
+????? бұл интернеттегі компьютердің жалпы ат бөлігі
+????? ақпараттық желілердің (грусталық) топталған ресурсы, 1 компьютердің бағындырылатын
+????? жүйедегі протоколдың түрі
+????? жалғыз машинаның жүйедегі жалпы бастамасы
+????? компьютердің орналасуын табады және кесік
+
+##### HTTP (Hyper Text Transfer Protocol) – хаттама нені жіберуге арналған:
+????? гипермәтінді
+????? электрондық хатты
+????? аудио ақпаратты
+????? бір бетке сілтемені
+????? телеконференцияны
+
+##### MAC – адрестің коды:
+????? ұзындығы 6 байт, 16-лық жүйеде жазылады
+????? 16-лық жүйеде жазылады
+????? шығарушы адресі анықтайтын алдыңғы үш байт
+????? 12 символдан тұрады
+????? желілік администратор қалауы бойынша
+
+##### HTTP – сұранысының құрылымы:
+????? сұраныс тақырыбы мен гиперсілтемеден тұрады
+????? мәтіннен, әжіктен және алушының адресінен тұрады
+????? клиенттер тізімі мен каталогтан тұрады
+????? сұраныстың тақырыбы мен бос жолмен бөлінген сұраныстың өзінен тұрады
+????? клиентке берілген жауаптан және оның электрондық адресінен тұрады
+
+##### Желілік карта сипатталады:
+????? разрядтылығымен, мәліметтер шинасымен
+????? ноутбукқа арналған PC MCIA стандартты адаптер
+????? жұмыс жылдамдығымен
+????? мәліметтер шинасымен
+????? чип және контроль микросхемасымен
+
+##### Регистрлер бөлінеді:
+????? жүйелік және логикалық
+????? қарапайым және логикалық
+????? қолданбалы және жүйелік мақсатты
+????? қарапайым және күрделі
+????? қолданбалы, күрделі
+
+##### «Аса үлкен интегралдық сұлбалардың (схемалардың)» (АҮИС) ерекшелігі неде:
+????? түйін (ядро) өлшемінің кішілігі
+????? интегралдық сұлбалардың (схемалардың) санының көбеюімен
+????? интегралдық сұлбалардың (схемалардың) санының көбеюі
+????? элементтер жиынын бір құрылғыда біріктіру
+????? құрастыру процесімен жеңілдету
+
+##### Жедел жад модульдері микропроцессормен қалай байланысқан:
+????? арифметика-логикалық құрылғы арқылы
+????? тікелей
+????? орталық басқару құрылғысы арқылы
+????? енгізу-шығару контроллері арқылы
+????? жедел жал модульдері арқылы
+
+##### Қандай құрылғы дербес компьютердің перефериялық құрылғысына жатады?
+????? дигитайзер
+????? бейнеплата
+????? жүйелік тақша (плата)
+????? қоректендіру блогы
+????? электронды сұлбалар (схемалар)
+
+##### Модемнің қызметі қандай:
+????? сандық ақпаратты аналогтық түрге түрлендіру және керісінше
+????? кез келген ақпарат түрін енгізу
+????? мәтіндік ақпаратты шығару ыңғайлылығы
+????? мәліметтер бөлігін құру
+????? ақпаратты бір тілден екінші тілге аудару
+
+##### Қолданушылардың интернет арқылы мәтіндік режимде хабар алмасуы:
+????? IRC (Internet Relay Chat)
+????? NNTP (Net News Transfer Protocol)
+????? UDP (User Datagram Protocol)
+????? E-mail
+????? түйін
+
+##### World Wide Web (WWW)-ті көрсетуге болады:
+????? үлкен кітапхана, оның Web сайттары – кітаптар, қолданушылар – осы кітаптың беттері
+????? кәдімгі пошта түрінде, мұндағы электрондық әжік – кітаптар, электронды адрестер – кітаптың беттері
+????? үлкен кітапхана, оның Web түйіндері – Web «беттері» - осы кітаптың беттері
+????? кәдімгі пошта түрінде, мұндағы электрондық адрес – кітаптар, электрондық хаттар – кітаптың беттері
+????? үлкен кітапхана, оның Web түйіндері – оқырмандар тізімі Web «беттері» - кітаптар тізімі
+
+##### Web – түйін:
+????? Web – беттердің жиынтығы
+????? электрондық әжіктер жиынтығы
+????? маршрутизаторлардың қиылысқан жері
+????? жұмыс станцияларының жиыны
+????? электрондық адрестер
+
+##### Желілік жаңалықтарды жеткізу хаттамасы, желілік жаңалықтарды алуға және желінің электрондық хабарлама тақтасын оқуға және ол тақтада ақпаратты орналастыруға мүмкіншілік береді:
+????? POP (Post Office Protocol)
+????? FTP (File Transfer Protocol)
+????? UDP (User Datagram Protocol)
+????? URL (Universal Resource Locator)
+????? NNTP (Net News Transfer Protocol)
+
+##### Бір бүтін селекция сызбасына біріктірілген жад ұяшықтарының жиынтығы
+????? ЕСҚ (Есте сақтау құрылғысы)
+????? ОЕСҚ (оперативті есте сақтау құрылғысы)
+????? ТЕСҚ (тұрақты есте сақтау құрылғысы)
+????? ЖЕСҚ (жергілікті есте сақтау құрылғысы)
+????? ҚЕСҚ (қосымша есте сақтау құрылғысы)
+
+##### Орталық процессормен басқарылатын бірыңғай жүйеге біріктірілген есте сақтау құрылғыларының жиынтығы
+????? ЭЕМ жады
+????? Жад
+????? КДК жады
+????? ЕСҚ
+????? ТЕСҚ
+
+##### Ең алғаш кім есептеуіш техникада конвейерлі ұйымдастыруды қолдануды ұсынды?
+????? Лебедев А.С.
+????? Гусев В.В
+????? Чайкина А.А.
+????? Уткин В.А
+????? Воронов К.С
+
+##### АЛО (командалар) процессін орындау циклі неше негізгі этаптардан тұрады?
+????? 5
+????? 4
+????? 3
+????? 2
+????? 8
+
+##### Блокты іске қосу қанша шарттарда орындалады?
+????? 2
+????? 3
+????? 5
+????? 4
+????? 6
+
+##### Шешімді жазу буфері:
+????? WF блогы
+????? GH блогы
+????? МК блогы
+????? DL блогы
+????? KN блогы
+
+##### Қазіргі заманғы компьютерлердің элементтік базасы болып табылады?
+????? өте үлкен АЖ
+????? өте кіші АЖ
+????? өте орташа АЖ
+????? өте үлкен АБ
+????? өте кіші АБ
+
+##### ЕҮИС қанша типтерді шығарады?
+????? 3
+????? 4
+????? 5
+????? 8
+????? 7
+
+##### Процессордың тез әрекет етуін арттыруға болады:
+????? тактілік жиілігін арттыру арқылы
+????? параллель өңдеулер арқылы
+????? жадқа қатынау уақытын азайту арқылы
+????? барлық жауаптар дұрыс
+????? дұрыс жауабы жоқ
+
+##### Операндалар және шешімдер скаляр ( сандар) болып табылатын амалдар?
+????? скаляр амалдар
+????? маляр амалдар
+????? жай амалдар
+????? барлық жауаптар дұрыс
+????? дұрыс жауабы жоқ
+
+##### Массивтерді өңдеу үшін қолданылады
+????? векторлық массивтер
+????? скаляр массивтер
+????? жай массивтер
+????? барлық жауап дұрыс
+????? дұрыс жауабы жоқ
+
+##### Өңдеуді тездету үшін тізбектелген программалауды сақтауда қолданылады:
+????? суперскалярлы процессор
+????? скалярлы массив
+????? жай массив
+????? барлық жауаптар дұрыс
+????? дұрыс жауабы жоқ
+
+##### Параллель жұмыс істейтін конвейерлердің тиімді жүктелуі қамтамасыз етеді
+????? процессор аппаратурасымен
+????? компилятормен
+????? аппаратурамен және компилятормен бірге
+????? барлық жауаптар дұрыс
+????? дұрыс жауабы жоқ
+
+##### Таратылған сәулеті бар процессор қанша суперпроцессорлардан тұрады?
+????? екі
+????? үш
+????? төрт
+????? бес
+????? алты
+
+##### Қандай жолмен ыдыратылған сәулеті бар процессорларда жадпен айырбас ұйымдастырылады?
+????? транзакция посылкалары
+????? ыдыратушымен
+????? бүтін санды мәліметтер
+????? қалқымалы үтір
+????? дұрыс жауабы жоқ
+
+##### Жадыға қатынау уақытын азайтудың қанша тәсілі бар?
+????? 4
+????? 5
+????? 2
+????? 1
+????? 3
+
+##### Аккумуляторды таңдаңыз:
+????? AX
+????? BX
+????? SP
+????? DX
+????? Flags
+
+##### Санауышты (счетчикті) таңдаңыз:
+????? CX
+????? AX
+????? BX
+????? DX
+????? SP
+
+##### Тұрақты есте сақтау құрылғысының қысқартылған түрі:
+????? BIOS
+????? ROM
+????? КЭШ
+????? RAM
+????? CMOS
+
+##### Ең жылдам (сверхбыстрая) жады аталады:
+????? КЭШ
+????? ROM
+????? RAM
+????? BIOS
+????? CMOS
+
+##### Графикалық файлдың кеңейтілуін таңдаңыз:
+????? JPG
+????? DOC
+????? XLS
+????? PAS
+????? TXT
+
+##### Видеофильм файлының кеңейтілуін таңдаңыз:
+????? AVI
+????? MDB
+????? JPG
+????? PCX
+????? TXT
+
+##### Команда көрсеткіші:
+????? IP
+????? AX
+????? SP
+????? BP
+????? CX
+
+##### Стек көрсеткіші:
+????? SP
+????? AX
+????? IP
+????? BP
+????? CX
+
+##### MOV CX,0 командасы орындалды. Команда орындалғаннан кейін ZF флагі нешеге тең
+????? 0
+????? 1
+????? 2
+????? 3
+????? 4
+
+##### Орталық процессор қандай күйде командалардың орындалу циклін, яғни өзінің негізгі функциясын атқарады
+????? Пуск.
+????? Жадыдан команданы таңдау
+????? Операндаларды таңдау
+????? Операцияларды орындау
+????? Нәтижені жазу
+
+##### Қандай күйде Пуск циклды орындауды тоқтатады
+????? Стоп.
+????? Функцияларды орындау
+????? Нәтижені жазу
+????? Операцияларды орындау
+????? Операндаларды таңдау
+
+##### Орталық процессор қандай күйде жұмыс режимін автоматтандырады
+????? Автомат.
+????? Жадыдан команданы таңдау
+????? Операцияларды орындау
+????? Нәтижені жазу
+????? Функцияларды орындау
+
+##### Қандай күйде процессордың жұмысы қадамдық режимді береді, мұнда орталық процессор бір команданы орындап болғаннан кейін тоқтайды, басқа команданы орындау үшін
+????? Қадам
+????? Операцияларды орындау
+????? Жадыдан команданы таңдау
+????? Функцияларды орындау
+????? Нәтижені жазу
+
+##### Орталық процессор қандай күйде өзінің жұмысын орындайды – командаларды циклды түрде орындайды
+????? Есеп
+????? Операцияларды орындау
+????? Жадыдан команданы таңдау
+????? Функцияларды орындау
+????? Нәтижені жазу
+
+##### Қандай күйде орталық процессор циклды орындауды тоқтата тұрады, процессордан тыс орындалатын қандай да бір процесстердің орындалып, аяқталуын күту мақсатымен
+????? Күту
+????? Операндаларды таңдау
+????? Нәтижені жазу
+????? Операцияларды орындау
+????? Функцияларды орындау
+
+##### ОА-ның құрылымдық базисі – бұл:
+????? ОА-ны құру үшін қолдануға болатын, құрылымдық элементтердің(электронных узлов) жиыны
+????? комбинациялық схемалар (КС)
+????? ақпараттың элементтерің сақтауға арналған регистр
+????? дұрыс жауабы жоқ
+????? құрылымның элементтері арасында ақпаратты алмастыру үшін қолданылатын,шина
+
+##### Комбинациялық схемалар осының негізінде салынады:
+????? логикалық элементтерден
+????? математикалық элементтерден
+????? структуралық композициялардан
+????? графикалық элементтерден
+????? қарапайым элементтерден
+
+##### Регистр:
+????? ақпараттың, сөздің элементін сақтауға арналған сақтау элементтерінің(триггеров) жиыны это совокупность запоминающих элементов (триггеров
+????? ақпараттың элементтерін сақтауға арналған құрылғы
+????? k–разрядты сөздің ақпаратын тасымалдауға арналған мақсат
+????? бәрі дұрыс
+????? микрооперация
+
+##### Тасымалдау процессін басқару мақсатында шинаға келесі басқару құралдары орналасады:
+????? кілттер (вентили)
+????? басқару сигналдары (импульсы)
+????? логикалық элементтер
+????? графикалық элементтер
+????? комбинациялық схемалар
+
+##### ақпараттың k–разрядты сөзін тасымалдауға арналған мақсаттардың жиыны – бұл:
+????? шина
+????? регистр
+????? комбинациялық схема
+????? импульс
+????? микрооперация
+
+##### Мультиплексор (цифрлық коммутатор) – бұл:
+????? бір ортақ шығысы бар басқару шиналардың жиынтығы
+????? бір ортақ кірісі бар басқару шиналардың жиынтығы
+????? k–разрядты сөздің ақпаратын тасымалдауға арналған мақсат
+????? кірісі және шығысы жоқ басқарылмайтын шина
+????? дұрыс жауабы жоқ
+
+##### Екіге бағытталған басқармалы шина – бұл:
+????? магистраль
+????? регистр
+????? демультиплексор
+????? интерфейс
+????? мультиплексор
+
+##### Магистраль (синхронды)
+????? қарапайым интерфейс
+????? күрделі интерфейс
+????? екі жақты шина
+????? цифрлық коммутатор
+????? логикалық интерфейс
+
+##### ЭВМ-нің сыртқы жадысы ненің негізінде салынады
+????? ВЗУ
+????? ГЗУ
+????? ПЗУ
+????? ОЗУ
+????? дұрыс жауабы жоқ
+
+##### ВЗУ –құрамына кіреді:
+????? ақпарат тасушы (съемный или стационарный)
+????? привод – дисковод (для дисков)
+????? ленталық механизм (ЛПМ) – для магнитных лент
+????? контроллер – жинақтауышты басқару блогы
+????? бәрі дұрыс
+
+##### Физикалық табиғаты бойынша есте сақтау(ЗУ) құрылғысы бөлінеді:
+????? магниттен жасалған есте сақтауыш, оптикадан жасалған есте сақтауыш, магнитооптикадан жасалған есте сақтауыш
+????? магниттен жасалған есте сақтауыш
+????? оптикадан жасалған есте сақтауыш
+????? магнитооптикадан жасалған есте сақтауыш
+????? дұрыс жауабы жоқ
+
+##### WF блогында нәтижені жазу буферінде – разрядтылығы;
+????? 64 бит
+????? 32 бит
+????? 8 бит
+????? 16 бит
+????? 128 бит
+
+##### Pentium жүйелік блогының қанша ерекшелігі бар?
+????? 5
+????? 4
+????? 2
+????? 6
+????? 3
+
+##### Скалярлық операциялар (және оларды тудыратын командалар)-бұл операцияларда....:
+????? операндалар мен нәтижелер скалярлы (сандар) болады
+????? операндалар скалярлы (сандар) болады
+????? нәтижелер скалярлы (сандар) болады
+????? жауаптар скалярлы (сандар) болады
+????? енгізілген сандар скалярлы (сандар) болады
+
+##### RISC-процесстердің жетіспеушілігі:
+????? машиналық программалардың үлкен көлемі (ұзындығы)
+????? форматтың күрделілігі
+????? командалардың ауыспалы ұзындығы
+????? жеделдетудегі туындайтын қиындықтар
+????? дұрыс жауабы жоқ
+
+##### Оңға,солға,төменге,жоғарыға бағыттауыштары?
+????? Курсорды басқару батырмалары-бөлімдер мен параметрлер бойынша курсорды жылжыту
+????? Таңдалған бөлімге кіру,таңдалған команданы орындау,таңдалған параметрдің мәндер тізімінің ашылуы
+????? BIOS Setup бойынша жұмыс істеудің анықтамалығын шақыру
+????? Таңдалған бөлім үшін алдыңғы параметрлерді қайтару
+????? Терезенің жоғарғы жағында таңдалған бөлім атауы шығады
+
+##### BIOS Setup бойынша жұмыс істеудің анықтамалығын шақыру?
+????? F1
+????? F5
+????? F10
+????? F6
+????? F7
+
+##### BIOS Setup бағдарламасының түстік палитрасын өзгерту(бұл баптау барлық BIOS түрлерінде кездеспейді)?
+????? F2
+????? F5
+????? F6
+????? F10
+????? F12
+
+##### Таңдалған бөлім үшін алдыңғы параметрлерді қайтару; BIOS Setup бағдарламасына кірген кездегі параметрлер қайтарылады(BIOS-тың кейбір нұсқаларында бұл батырма үнсіз келісім бойынша мәндерді орнатуға қолданылады)?
+????? F5
+????? F6
+????? F7
+????? F1
+????? F2
+
+##### Таңдалған бөлімге үнсіз келісім бойынша мәндерді орнату(Load Fail-Safe Defaults командасы); BIOS-тың кейбір нұсқаларында бұл мақсатқа F5 немесе F9 батырмалары қолданылуы мүмкін?
+????? F6
+????? F1
+????? F7
+????? F10
+????? F12
+
+##### Бөлімнің таңдалған параметрлеріне оптимизацияланған мәндер орнатылады (Load Optimized Defaults командасы)?
+????? F7
+????? F1
+????? F2
+????? F10
+????? F12
+
+##### BIOS Setup-тан барлық өзгерістерді сақтап шығу,бұл жағдайда Y және Enter батырмалары көмегімен әрекетті растау керек?
+????? F10
+????? F1
+????? F6
+????? F7
+????? F5
+
+##### BIOS бөлімнен бас менюге шығу?
+????? Esc
+????? Page Up
+????? Page Down
+????? Delete
+????? Num Lock
+
+##### BIOS-та таңдалған бөлімге кіру,таңдалған команданы орындау,таңдалған параметрдің мәндер тізімінің ашылуы?
+????? Enter
+????? Esc
+????? Page Up/Page Down
+????? Оңға,солға,төменге,жоғарыға
+????? F2
+
+##### BIOS-та жалпы таңдалған параметр бойынша қысқаша ақпарат көрсетіледі?
+????? Терезенің оң жағында
+????? Терезенің сол жағында
+????? Терезенің жоғарғы жағында
+????? Терезенің астыңғы жағында
+????? Терезенің ортасында жағында
+
+##### Basic input/output system дегеніміз?
+????? Базалық кіріс-шығыс жүйесі
+????? CMOS Setup
+????? Оңға,солға,төменге,жоғарыға бағыттауыштар
+????? FFFF:0000
+????? Load Optimized Defaults
+
+##### ЭЕМ-нің барлық құрылғылары қалай бөлінеді ?
+????? ішкі және сыртқы
+????? оң және сол
+????? жоғары және төмен
+????? алды және арты
+????? енгізу және шығару
+
+##### Порт дегеніміз не?
+????? Орталық процессордан тыс орналасатын байт немесе сөз өлшемді қандай да бір регистр
+????? Орталық процессор да, сыртқы құрылғы да портқа ақпарат жазатын регистр
+????? Орталық процессор жағынан бұл операциялар келесі машиналық командалар көмегімен жүзеге асыратын регистер
+????? Барлық порттардан байттық болып табылатын регистер
+????? Әрбір сыртқы құрылғымен, өз портымен немесе бірнеше порттармен байланысатын регистер
+
+##### Порттан оқу (енгізу) ?
+????? IN AL, n немесе IN AX, n
+????? OUT n, AL немесе OUT n, AX
+????? IN AL, n
+????? OUT n, AX
+????? OUT n, AL
+
+##### Портқа жазу (шығару)?
+????? OUT n, AL немесе OUT n, AX
+????? IN AL, n немесе IN AX, n
+????? IN AL, n
+????? OUT n, AX
+????? OUT n, AL
+
+##### Операциялық жүйенің негізгі міндеттерінің бірі ?
+????? ЭЕМ құрамына кіретін барлық құрылғылар жұмысын басқару
+????? Дербес компьютерлерде орталық процессор мен сыртқы құрылғылар арасында ақпарат алмасу порттар арқылы жүзеге асады
+????? Енгізу-шығару деп орталық процессор мен кез келген құрылғы арасында ақпарат алмасуды айтамыз
+????? Орталық процессор мен оперативті жады, ал қалған барлық құрылғылар сыртқы құрылғыларға (сыртқы жад, пернетақта, монитор, т.б.) жатады
+????? Орталық процессордан тыс орналасатын байт немесе сөз өлшемді қандай да бір регистр
+
+##### ЭЕМ құрамына кіретін барлық құрылғылар жұмысын басқару?
+????? Операциялық жүйенің негізгі міндеттерінің бірі
+????? Дербес компьютерлерде орталық процессор мен сыртқы құрылғылар арасында ақпарат алмасу порттар арқылы жүзеге асады
+????? Енгізу-шығару деп орталық процессор мен кез келген құрылғы арасында ақпарат алмасуды айтамыз
+????? Орталық процессор мен оперативті жады, ал қалған барлық құрылғылар сыртқы құрылғыларға (сыртқы жад, пернетақта, монитор, т.б.) жатады
+????? Орталық процессордан тыс орналасатын байт немесе сөз өлшемді қандай да бір регистр
+
+##### Пернетақтаның микропроцессоры скэн-кодты 8255 микросхемасының А портына орналастырғанда,онда бұл жағдайда ... үзілісі шақырылады?
+????? 9
+????? 8
+????? 7
+????? 10
+????? 5
+
+##### Үзудің қызметі дегеніміз не?
+????? Перне-қосқыштардың күйін негізге ала отырып, скан-кодтың символын түрлендіру және оны пернетақта буферіне орналастыру
+????? Сканерлеу кодын код нөмірі немесе мәртебесі негізгі ажыратқыштар регистр орнату түрлендіру
+????? ЭЕМ құрамына кіретін барлық құрылғылар жұмысын басқару
+????? Регистр
+????? Тиімді процедура терең ойлауды талап етеді
+
+##### Енгізу сипаты анықталған соң, рәсім тиісті ... кодын табу үшін клавиатурадан енгізіледі?
+????? ASCII
+????? XLAT
+????? XLAT AL
+????? BX
+????? BIOS
+
+##### Дербес компьютерлерде орталық процессор мен сыртқы құрылғылар арасында ақпарат алмасу қалай жүзеге асады?
+????? порттар арқылы
+????? кодтар арқылы
+????? BIOS арқылы
+????? баптау арқылы
+????? регистр арқылы
+
+##### Процессор операциялық жүйеден арнайы сигнал (үзілім сигналын) алғаннан кейін ағымды бағдарлама командаларын тоқтатып, басқаруды ? береді?
+????? Операциялық жүйеге
+????? BIOS
+????? ЭЕМ
+????? Баптауларға
+????? Регистрға
+
+##### Үзілім мезетінде бұл регистрлер егер де үзілім болмаса орындалатын командаға, яғни бағдарлама жұмысын қай жерден бастап қайта жалғастыру керектігін нұсқайды?
+????? CS және IP
+????? енгізу және шығару
+????? ішкі және сыртқы
+????? XLAT AL
+????? XLAT
+
+##### В портында пернетақтаның сигналын қандай өлшем бірлікпен бақылайды?
+????? 6 бит
+????? 7 бит
+????? 8 бит
+????? 9 бит
+????? 10 бит
+
+##### Порттар арқылы қандай жұмыстар жасалады?
+????? Дербес компьютерлерде орталық процессор мен сыртқы құрылғылар арасында ақпарат алмасу жүзеге асады
+????? Қоңырау кезінде скан-код А портында болады, сондықтан сіз алдымен кодын оқып және стекте сақтау қажетсіз. болады үзіліп. Содан соң ? (мекен-жайы 61H) порты пайдаланады
+????? Үзілім мезетінде бұл регистрлер егер де үзілім болмаса орындалатын командаға, яғни бағдарлама жұмысын қай жерден бастап қайта жалғастыру керектігін нұсқайды
+????? Енгізу сипаты анықталған соң, рәсім тиісті ? кодын табу үшін клавиатурадан енгізіледі
+????? ЭЕМ құрамына кіретін барлық құрылғылар жұмысын басқару
+
+##### Файлдық жүйе маңызды қанша жұмыс түрінде атқарады?
+????? үш
+????? екі
+????? бес
+????? жеті
+????? төрт
+
+##### Компьютердің қосу батырмасына басқаннан кейінгі жүктелетін ең бірінші құрылғы?
+????? қоректендіру блогы
+????? монитор
+????? клавиатура
+????? құжаттар
+????? жұмыс үстелі
+
+##### Процессордің жұмысы?
+????? жүйелік жадыдан біртіндеп командаларды оқу және орындау
+????? ақпаратты визуалды түрде ұсынады
+????? өшіру
+????? сілтеуішті іске қосу
+????? қолданушының құжаттарын оқу
+
+##### BIOS-та жазылған бағдарлама бойынша компьютер қосыла салысымен ... жүктеледі?
+????? POST
+????? программа
+????? қатты диск
+????? операция
+????? команда
+
+##### CMOS бақылау қосындысы қате болса, барлық мәндер ... жүктеледі?
+????? үнсіздік бойынша
+????? ақпаратты визуалды түрде
+????? процессорда
+????? дискіде
+????? буферде
+
+##### Жинақтауыштар туралы мағлұматтар ... пайда болады?
+????? экранда
+????? құжатта
+????? ішкі жадыда
+????? буферде
+????? мәзірде
+
+##### Құрылғыларды іздеу параметрлері?
+????? First Boot Device, Second Boot Device және Third Boot Device
+????? Windows Device
+????? Web-файл
+????? INT BIOS Device
+????? графикалық және графиалық емес параметрлер
+
+##### BIOS бағдарламасы алдымен қайда қатынайды?
+????? дискіжетекке
+????? қосымшаларға
+????? файлға
+????? мәзірге
+????? буферге
+
+##### BIOS бағдарламасы дискетті тапқаннан кейін оның бірінші ... оқиды?
+????? секторын
+????? команда жолын
+????? web-файлын
+????? диаграммалар және графиктерін
+????? сұрауларын
+
+##### Егер дискіжетекте дискета жоқ болса, онда жүйе ...?
+????? CD-ға арналған жетекке қатынайды
+????? алмасу буферіне қатынайды
+????? жедел есте сақтау құрылғысы қатынайды
+????? форматталады
+????? жойылады
+
+##### Windows үшін қандай қолданбалар құруға болады?
+????? терезелік және консольдік
+????? сегменттік
+????? оперативтік
+????? графиктік
+????? негізгі және мәліметтік
+
+##### Регистр дегеніміз не?
+????? процессор ұяшығы
+????? жад ұяшығы
+????? оперативтік жад
+????? ішкі жад
+????? буфер ұяшығы
+
+##### Жалауша көрсеткіші регистрін көрсетіңіз?
+????? FLAGE
+????? FLAG
+????? FL
+????? FG
+????? F
+
+##### Барлық регистрлер қанша разрядтан тұрады?
+????? 16 разряд
+????? 14 разряд
+????? 12 разряд
+????? 6 разряд
+????? 8 разряд
+
+##### Регистрлер қанша байттан тұрады?
+????? 2 байт
+????? 4 байт
+????? 12 байт
+????? 6 байт
+????? 8 байт
+
+##### Windows интерфейсінің негізгі элементі?
+????? терезе
+????? корзина
+????? ұяшық
+????? мой документ
+????? блокнот
+
+##### Windows –ты пайдаланып жұмыс істейтін қолданбалы программаларды не деп айтады?
+????? қосымша
+????? негізгі
+????? терезе
+????? қолданбалы
+????? қосалқы
+  </script>
+
+  <script>
+    // Парсинг базы вопросов из текстового блока
+    function parseQuestions(rawText) {
+      const blocks = rawText.split('#####').map(b => b.trim()).filter(Boolean);
+      const parsed = [];
+
+      blocks.forEach((block, index) => {
+        const parts = block.split('?????').map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+          const questionText = parts[0].replace(/\s+/g, ' ').trim();
+          const options = parts.slice(1).map(opt => opt.replace(/\s+/g, ' ').trim());
+          // Первый вариант (options[0]) в документе всегда правильный
+          const correctAnswer = options[0];
+          parsed.push({
+            id: index + 1,
+            question: questionText,
+            options: options,
+            correctAnswer: correctAnswer
+          });
+        }
+      });
+
+      return parsed;
+    }
+
+    // Полная база вопросов
+    const ALL_QUESTIONS = parseQuestions(document.getElementById('rawQuizData').textContent);
+
+    // Состояние приложения
+    let state = {
+      currentModeConfig: null, // { type: 'chunk' | 'all' | 'exam', start?: number, end?: number, title: string }
+      sessionQuestions: [],
+      currentIndex: 0,
+      correctCount: 0,
+      wrongCount: 0,
+      answeredCurrent: false,
+      mistakes: [],
+      autoAdvanceTimer: null
+    };
+
+    // Буквенные метки для вариантов
+    const OPTION_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+    // Алгоритм Фишера — Йетса для честного перемешивания массива
+    function shuffleArray(array) {
+      const copy = [...array];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // Инициализация главного меню
+    function initHome() {
+      const total = ALL_QUESTIONS.length;
+      document.getElementById('totalQuestionsBadge').textContent = total;
+      document.getElementById('allQuestionsChip').textContent = `Полная база • ${total} вопросов`;
+
+      const chunksGrid = document.getElementById('chunksGrid');
+      chunksGrid.innerHTML = '';
+
+      const chunkSize = 50;
+      const totalChunks = Math.ceil(total / chunkSize);
+
+      for (let i = 0; i < totalChunks; i++) {
+        const startNum = i * chunkSize + 1;
+        const endNum = Math.min((i + 1) * chunkSize, total);
+        const countInChunk = endNum - startNum + 1;
+
+        const card = document.createElement('button');
+        card.onclick = () => startChunkMode(startNum, endNum);
+        card.className = 'glass-card glass-card-hover rounded-2xl p-5 text-left flex flex-col justify-between gap-4 group focus:outline-none';
+        card.innerHTML = `
+          <div class="flex items-center justify-between w-full">
+            <span class="w-9 h-9 rounded-xl bg-blue-500/20 border border-sky-400/30 text-sky-300 font-extrabold text-sm flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-colors">
+              ${i + 1}
+            </span>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-navy-950/70 text-blue-300 border border-blue-400/15">
+              ${countInChunk} вопр.
+            </span>
+          </div>
+          <div>
+            <h4 class="text-lg font-bold text-white group-hover:text-sky-300 transition-colors">
+              Вопросы ${startNum} – ${endNum}
+            </h4>
+            <p class="text-xs text-blue-200/75 mt-1">
+              Блок №${i + 1} из базы тестов
+            </p>
+          </div>
+          <div class="flex items-center text-xs font-semibold text-sky-400 group-hover:translate-x-1 transition-transform">
+            <span>Начать блок</span>
+            <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </div>
+        `;
+        chunksGrid.appendChild(card);
+      }
+    }
+
+    // Запуск режима по блоку из 50 вопросов
+    function startChunkMode(startNum, endNum) {
+      const slice = ALL_QUESTIONS.slice(startNum - 1, endNum);
+      const shouldShuffleQ = document.getElementById('shuffleQuestionsToggle').checked;
+      const questions = shouldShuffleQ ? shuffleArray(slice) : slice;
+
+      beginQuizSession({
+        type: 'chunk',
+        start: startNum,
+        end: endNum,
+        title: `Вопросы ${startNum} – ${endNum}`
+      }, questions);
+    }
+
+    // Запуск всех вопросов сразу
+    function startAllMode() {
+      const shouldShuffleQ = document.getElementById('shuffleQuestionsToggle').checked;
+      const questions = shouldShuffleQ ? shuffleArray(ALL_QUESTIONS) : [...ALL_QUESTIONS];
+
+      beginQuizSession({
+        type: 'all',
+        title: `Все вопросы (${ALL_QUESTIONS.length})`
+      }, questions);
+    }
+
+    // Запуск режима Экзамена (50 случайных вопросов)
+    function startExamMode() {
+      const shuffled = shuffleArray(ALL_QUESTIONS);
+      const examQuestions = shuffled.slice(0, 50);
+
+      beginQuizSession({
+        type: 'exam',
+        title: 'Экзамен (50 случайных)'
+      }, examQuestions);
+    }
+
+    // Повторный запуск текущего режима
+    function restartCurrentQuiz() {
+      if (!state.currentModeConfig) {
+        goHome();
+        return;
+      }
+      const cfg = state.currentModeConfig;
+      if (cfg.type === 'chunk') {
+        startChunkMode(cfg.start, cfg.end);
+      } else if (cfg.type === 'all') {
+        startAllMode();
+      } else if (cfg.type === 'exam') {
+        startExamMode();
+      }
+    }
+
+    // Инициализация игровой сессии
+    function beginQuizSession(config, questionsList) {
+      clearTimeout(state.autoAdvanceTimer);
+
+      state.currentModeConfig = config;
+      state.sessionQuestions = questionsList;
+      state.currentIndex = 0;
+      state.correctCount = 0;
+      state.wrongCount = 0;
+      state.answeredCurrent = false;
+      state.mistakes = [];
+
+      // Переключение экранов
+      document.getElementById('homeScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('quizScreen').classList.remove('hidden');
+
+      document.getElementById('headerStats').classList.add('hidden');
+      document.getElementById('headerHomeBtn').classList.remove('hidden');
+
+      document.getElementById('modeBadge').textContent = config.title;
+      document.getElementById('totalQNum').textContent = questionsList.length;
+
+      updateLiveCounters();
+      renderCurrentQuestion();
+    }
+
+    // Обновление живых счетчиков
+    function updateLiveCounters() {
+      document.getElementById('liveCorrectCount').textContent = state.correctCount;
+      document.getElementById('liveWrongCount').textContent = state.wrongCount;
+    }
+
+    // Отрисовка текущего вопроса
+    function renderCurrentQuestion() {
+      clearTimeout(state.autoAdvanceTimer);
+      state.answeredCurrent = false;
+
+      const qObj = state.sessionQuestions[state.currentIndex];
+      const total = state.sessionQuestions.length;
+
+      document.getElementById('currentQNum').textContent = state.currentIndex + 1;
+      document.getElementById('originalQuestionIndex').textContent = qObj.id;
+      document.getElementById('questionText').textContent = qObj.question;
+
+      // Обновляем прогресс-бар
+      const progressPct = ((state.currentIndex) / total) * 100;
+      document.getElementById('progressBar').style.width = `${Math.max(2, progressPct)}%`;
+
+      // Скрываем кнопку "Далее" и статус ответа
+      const nextBtn = document.getElementById('nextQuestionBtn');
+      nextBtn.classList.add('hidden');
+      document.getElementById('nextBtnText').textContent =
+        state.currentIndex === total - 1 ? 'Завершить тест' : 'Следующий вопрос';
+
+      const feedbackLabel = document.getElementById('feedbackLabel');
+      feedbackLabel.classList.add('hidden');
+      feedbackLabel.textContent = '';
+
+      // Перемешиваем варианты ответов для текущего вопроса
+      const shuffledOptions = shuffleArray(qObj.options);
+
+      const container = document.getElementById('optionsContainer');
+      container.innerHTML = '';
+
+      shuffledOptions.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.optionText = optText;
+        btn.onclick = () => handleOptionSelect(btn, optText, qObj);
+        btn.className = 'option-btn w-full text-left p-4 sm:p-4.5 rounded-2xl bg-navy-950/65 border border-blue-400/25 flex items-center gap-3.5 group focus:outline-none';
+
+        const letter = OPTION_LETTERS[idx] || (idx + 1);
+        btn.innerHTML = `
+          <span class="option-badge w-8 h-8 rounded-xl bg-blue-600/35 border border-sky-400/30 text-sky-200 font-bold text-sm flex items-center justify-center shrink-0 transition-colors">
+            ${letter}
+          </span>
+          <span class="option-text text-sm sm:text-base font-medium text-blue-50 leading-snug flex-1">
+            ${escapeHtml(optText)}
+          </span>
+          <span class="option-icon hidden shrink-0"></span>
+        `;
+        container.appendChild(btn);
+      });
+
+      // Анимация карточки вопроса
+      const card = document.getElementById('questionCard');
+      card.classList.remove('animate-enter');
+      void card.offsetWidth;
+      card.classList.add('animate-enter');
+    }
+
+    // Обработка выбора ответа
+    function handleOptionSelect(selectedBtn, selectedText, qObj) {
+      if (state.answeredCurrent) return;
+      state.answeredCurrent = true;
+
+      const isCorrect = selectedText === qObj.correctAnswer;
+      const allBtns = document.querySelectorAll('#optionsContainer .option-btn');
+      const feedbackLabel = document.getElementById('feedbackLabel');
+
+      if (isCorrect) {
+        state.correctCount++;
+        feedbackLabel.textContent = '✓ Правильно!';
+        feedbackLabel.className = 'font-bold text-emerald-400';
+      } else {
+        state.wrongCount++;
+        feedbackLabel.textContent = '✕ Неправильно';
+        feedbackLabel.className = 'font-bold text-rose-400';
+
+        // Сохраняем ошибку для итогового разбора
+        state.mistakes.push({
+          questionId: qObj.id,
+          question: qObj.question,
+          selectedAnswer: selectedText,
+          correctAnswer: qObj.correctAnswer
+        });
+      }
+
+      updateLiveCounters();
+
+      // Подсветка кнопок
+      allBtns.forEach(btn => {
+        btn.disabled = true;
+        const text = btn.dataset.optionText;
+        const badge = btn.querySelector('.option-badge');
+        const iconSlot = btn.querySelector('.option-icon');
+
+        if (text === qObj.correctAnswer) {
+          btn.classList.remove('bg-navy-950/65', 'border-blue-400/25');
+          btn.classList.add('bg-emerald-600/30', 'border-emerald-400', 'shadow-lg', 'shadow-emerald-950/40');
+          badge.classList.remove('bg-blue-600/35', 'border-sky-400/30', 'text-sky-200');
+          badge.classList.add('bg-emerald-500', 'border-emerald-300', 'text-white');
+          iconSlot.classList.remove('hidden');
+          iconSlot.innerHTML = `<svg class="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>`;
+        } else if (btn === selectedBtn && !isCorrect) {
+          btn.classList.remove('bg-navy-950/65', 'border-blue-400/25');
+          btn.classList.add('bg-rose-600/30', 'border-rose-400', 'shadow-lg', 'shadow-rose-950/40');
+          badge.classList.remove('bg-blue-600/35', 'border-sky-400/30', 'text-sky-200');
+          badge.classList.add('bg-rose-500', 'border-rose-300', 'text-white');
+          iconSlot.classList.remove('hidden');
+          iconSlot.innerHTML = `<svg class="w-6 h-6 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>`;
+        } else {
+          btn.classList.add('opacity-50');
+        }
+      });
+
+      // Обновляем прогресс с учетом отвеченного вопроса
+      const total = state.sessionQuestions.length;
+      const progressPct = ((state.currentIndex + 1) / total) * 100;
+      document.getElementById('progressBar').style.width = `${progressPct}%`;
+
+      // Показываем кнопку "Далее"
+      document.getElementById('nextQuestionBtn').classList.remove('hidden');
+
+      // Если включен автопереход
+      const autoAdvance = document.getElementById('autoAdvanceToggle').checked;
+      if (autoAdvance) {
+        state.autoAdvanceTimer = setTimeout(() => {
+          nextQuestion();
+        }, 1200);
+      }
+    }
+
+    // Переход к следующему вопросу или экрану результатов
+    function nextQuestion() {
+      clearTimeout(state.autoAdvanceTimer);
+      if (state.currentIndex + 1 < state.sessionQuestions.length) {
+        state.currentIndex++;
+        renderCurrentQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    // Досрочное завершение теста
+    function finishQuizEarly() {
+      clearTimeout(state.autoAdvanceTimer);
+      const answeredTotal = state.correctCount + state.wrongCount;
+      if (answeredTotal === 0) {
+        goHome();
+        return;
+      }
+      showResults();
+    }
+
+    // Отображение экрана результатов
+    function showResults() {
+      clearTimeout(state.autoAdvanceTimer);
+
+      document.getElementById('quizScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.remove('hidden');
+
+      const answeredTotal = state.correctCount + state.wrongCount;
+      const percent = answeredTotal > 0 ? Math.round((state.correctCount / answeredTotal) * 100) : 0;
+
+      document.getElementById('resultModeTitle').textContent = state.currentModeConfig ? state.currentModeConfig.title : 'Результаты';
+      document.getElementById('resTotalAnswered').textContent = answeredTotal;
+      document.getElementById('resCorrect').textContent = state.correctCount;
+      document.getElementById('resWrong').textContent = state.wrongCount;
+      document.getElementById('scorePercentText').textContent = `${percent}%`;
+
+      // Заголовок в зависимости от результата
+      const headline = document.getElementById('resultHeadline');
+      const subtext = document.getElementById('resultSubtext');
+      if (percent >= 90) {
+        headline.textContent = 'Превосходный результат!';
+        subtext.textContent = 'Вы отлично владеете материалом по архитектуре компьютерных систем.';
+      } else if (percent >= 70) {
+        headline.textContent = 'Хороший результат!';
+        subtext.textContent = 'Уверенный уровень подготовки. Обратите внимание на допущенные ошибки ниже.';
+      } else if (percent >= 50) {
+        headline.textContent = 'Неплохо, но можно лучше';
+        subtext.textContent = 'Рекомендуем повторить сложные вопросы и пройти тест ещё раз.';
+      } else {
+        headline.textContent = 'Требуется дополнительная подготовка';
+        subtext.textContent = 'Изучите разбор ошибок ниже и попробуйте пройти блок заново.';
+      }
+
+      // Анимация круговой диаграммы
+      const circle = document.getElementById('scoreCircle');
+      const circumference = 326.72; // 2 * PI * 52
+      const offset = circumference - (percent / 100) * circumference;
+      circle.style.strokeDashoffset = circumference;
+      setTimeout(() => {
+        circle.style.strokeDashoffset = offset;
+      }, 80);
+
+      // Рендер списка ошибок
+      const mistakesSection = document.getElementById('mistakesSection');
+      const mistakesList = document.getElementById('mistakesList');
+      mistakesList.innerHTML = '';
+
+      if (state.mistakes.length > 0) {
+        mistakesSection.classList.remove('hidden');
+        document.getElementById('mistakesCountBadge').textContent = state.mistakes.length;
+
+        state.mistakes.forEach((m, index) => {
+          const item = document.createElement('div');
+          item.className = 'glass-card rounded-2xl p-5 space-y-3 border-l-4 border-l-rose-500';
+          item.innerHTML = `
+            <div class="flex items-center justify-between text-xs text-blue-300">
+              <span class="font-bold">Ошибка #${index + 1} (Вопрос №${m.questionId} в базе)</span>
+            </div>
+            <p class="text-white font-semibold text-sm sm:text-base">${escapeHtml(m.question)}</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs sm:text-sm">
+              <div class="p-3 rounded-xl bg-rose-950/50 border border-rose-400/30 text-rose-200">
+                <span class="block text-[11px] uppercase font-bold text-rose-400 mb-0.5">Ваш ответ:</span>
+                ${escapeHtml(m.selectedAnswer)}
+              </div>
+              <div class="p-3 rounded-xl bg-emerald-950/50 border border-emerald-400/30 text-emerald-200">
+                <span class="block text-[11px] uppercase font-bold text-emerald-400 mb-0.5">Правильный ответ:</span>
+                ${escapeHtml(m.correctAnswer)}
+              </div>
+            </div>
+          `;
+          mistakesList.appendChild(item);
+        });
+      } else {
+        mistakesSection.classList.add('hidden');
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Подтверждение выхода на главную во время активного теста
+    function confirmExitToHome() {
+      const isQuizVisible = !document.getElementById('quizScreen').classList.contains('hidden');
+      const answered = state.correctCount + state.wrongCount;
+
+      if (isQuizVisible && answered > 0) {
+        const modal = document.getElementById('confirmModal');
+        modal.classList.remove('hidden');
+        document.getElementById('modalConfirmAction').onclick = () => {
+          closeConfirmModal();
+          goHome();
+        };
+      } else {
+        goHome();
+      }
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmModal').classList.add('hidden');
+    }
+
+    // Возврат на главную страницу
+    function goHome() {
+      clearTimeout(state.autoAdvanceTimer);
+      document.getElementById('quizScreen').classList.add('hidden');
+      document.getElementById('resultScreen').classList.add('hidden');
+      document.getElementById('homeScreen').classList.remove('hidden');
+
+      document.getElementById('headerHomeBtn').classList.add('hidden');
+      document.getElementById('headerStats').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Экранирование HTML-символов в вопросах/ответах (например, <, >)
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Запуск приложения после загрузки окна
+    window.onload = function () {
+      initHome();
+    };
+  </script>
+</body>
+</html>
